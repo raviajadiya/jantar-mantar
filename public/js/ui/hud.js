@@ -43,6 +43,8 @@ class GameHUD {
     if (this.zoomOutBtn) this.zoomOutBtn.addEventListener('click', () => this.camera.zoomBy(0.8));
     if (this.resetCamBtn) {
       this.resetCamBtn.addEventListener('click', () => {
+        this.camera.isDragging = false;
+        this.camera.setFollow(this.player);
         this.camera.moveTo(this.player.x, this.player.y);
         this.camera.setZoom(window.innerWidth <= 768 ? 0.36 : 1.0);
       });

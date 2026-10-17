@@ -17,7 +17,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // 2. Camera System
   const camera = new window.Camera2D(canvas.width, canvas.height, config.world.width, config.world.height);
-  const input = new window.InputManager(canvas, camera);
+  const input = new window.InputManager(canvas, camera, roadNetwork);
   input.setGameMode('walk');
 
   // Center position for cinematic overview
@@ -534,6 +534,9 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!isGameStarted) return;
     if (hud.gameMode === 'walk') {
       player.setDestination(worldX, worldY);
+      // Re-attach camera follow to the player as they move along the road
+      camera.isDragging = false;
+      camera.setFollow(player);
     }
   };
 
@@ -585,6 +588,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // 2. Rebuild Road Network with progressive rings
     roadNetwork.center = newCenter;
     roadNetwork.buildGraphForMap(currentLevel);
+    input.setRoadNetwork(roadNetwork);
 
     // 3. Update Camera and Minimap World Size
     camera.setWorldSize(worldSize, worldSize);

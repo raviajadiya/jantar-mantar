@@ -1,12 +1,15 @@
 // Responsive Input Management: Click-to-Move, Mouse Drag, Zoom & Keyboard
 class InputManager {
-  constructor(canvas, camera) {
+  constructor(canvas, camera, roadNetwork = null) {
     this.canvas = canvas;
     this.camera = camera;
+    this.roadNetwork = roadNetwork;
     this.keys = {};
     this.mouse = { x: 0, y: 0, worldX: 0, worldY: 0, isDown: false, rightDown: false };
     this.dragStart = { x: 0, y: 0, camX: 0, camY: 0 };
     this.isDragging = false;
+    this.dragMode = null; // 'road' (move protester) or 'pan' (drag map)
+    this.touchDragMode = null;
     this.gameMode = 'walk'; // 'walk' or 'explore'
 
     this.onWorldClick = null;
@@ -18,9 +21,19 @@ class InputManager {
     this.pinchStartDist = 0;
     this.pinchStartZoom = 1;
     this.lastTouchClickTime = 0;
+    this.lastTouchStartTime = 0;
 
     this.initListeners();
     this.initMobileControls();
+  }
+
+  setRoadNetwork(rn) {
+    this.roadNetwork = rn;
+  }
+
+  checkIsOnRoad(worldX, worldY) {
+    if (!this.roadNetwork) return true;
+    return this.roadNetwork.isPointOnRoad(worldX, worldY, 22);
   }
 
   setGameMode(mode) {
@@ -48,27 +61,35 @@ class InputManager {
       this.mouse.worldY = worldPos.y;
 
       if (this.mouse.isDown) {
-        if (this.gameMode === 'explore') {
-          // Pan camera in explore mode
+        if (this.dragMode === 'pan' || this.gameMode === 'explore') {
+          // Pan camera smoothly when dragging off-road
           const dx = (e.clientX - this.dragStart.x);
           const dy = (e.clientY - this.dragStart.y);
           this.camera.targetX = this.dragStart.camX - dx / this.camera.zoom;
           this.camera.targetY = this.dragStart.camY - dy / this.camera.zoom;
-        } else if (this.gameMode === 'walk') {
-          // Steer towards mouse with slight throttle to prevent recalculation thrashing
+          this.camera.x = this.camera.targetX;
+          this.camera.y = this.camera.targetY;
+        } else if (this.dragMode === 'road' && this.gameMode === 'walk') {
+          // Steer towards mouse along road with throttling
           const now = performance.now();
-          if (this.onWorldClick && (!this.lastMoveClickTime || now - this.lastMoveClickTime > 180)) {
+          if (this.onWorldClick && (!this.lastMoveClickTime || now - this.lastMoveClickTime > 150)) {
             const dragDist = Math.hypot(e.clientX - this.dragStart.x, e.clientY - this.dragStart.y);
             if (dragDist > 25) {
-              this.lastMoveClickTime = now;
-              this.onWorldClick(this.mouse.worldX, this.mouse.worldY);
+              const isOnRoad = this.checkIsOnRoad(this.mouse.worldX, this.mouse.worldY);
+              if (isOnRoad) {
+                this.lastMoveClickTime = now;
+                this.onWorldClick(this.mouse.worldX, this.mouse.worldY);
+              }
             }
           }
         }
+      } else {
+        const isOnRoad = this.checkIsOnRoad(worldPos.x, worldPos.y);
+        this.canvas.style.cursor = isOnRoad ? 'crosshair' : 'grab';
       }
     });
 
-    // Mouse Down (Immediate response!)
+    // Mouse Down (Check if on road vs off-road box)
     this.canvas.addEventListener('mousedown', (e) => {
       const rect = this.canvas.getBoundingClientRect();
       this.mouse.x = e.clientX - rect.left;
@@ -84,9 +105,20 @@ class InputManager {
         this.dragStart.camX = this.camera.targetX;
         this.dragStart.camY = this.camera.targetY;
 
-        // Trigger move immediately upon click!
-        if (this.gameMode === 'walk' && this.onWorldClick) {
-          this.onWorldClick(this.mouse.worldX, this.mouse.worldY);
+        const isOnRoad = this.checkIsOnRoad(worldPos.x, worldPos.y);
+
+        if (isOnRoad) {
+          // Clicked on a road: Move protester and draw movement path line
+          this.dragMode = 'road';
+          this.camera.isDragging = false;
+          if (this.gameMode === 'walk' && this.onWorldClick) {
+            this.onWorldClick(this.mouse.worldX, this.mouse.worldY);
+          }
+        } else {
+          // Clicked off-road (on city blocks / buildings / boxes): Pan the map!
+          this.dragMode = 'pan';
+          this.camera.isDragging = true;
+          this.canvas.style.cursor = 'grabbing';
         }
       } else if (e.button === 2) { // Right click for running sprint
         this.mouse.rightDown = true;
@@ -100,7 +132,10 @@ class InputManager {
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) {
         this.mouse.isDown = false;
-        this.isDragging = false;
+        if (this.dragMode === 'pan') {
+          this.canvas.style.cursor = 'grab';
+        }
+        this.dragMode = null;
       } else if (e.button === 2) {
         this.mouse.rightDown = false;
       }
@@ -134,18 +169,35 @@ class InputManager {
         this.mouse.worldY = worldPos.y;
         this.mouse.isDown = true;
 
-        const now = performance.now();
-        // Double-tap to sprint on mobile
-        if (this.lastTouchStartTime && (now - this.lastTouchStartTime < 350)) {
-          this.isTouchSprinting = true;
-        } else {
-          this.isTouchSprinting = false;
-        }
-        this.lastTouchStartTime = now;
-        this.lastTouchClickTime = now;
+        this.dragStart.x = touch.clientX;
+        this.dragStart.y = touch.clientY;
+        this.dragStart.camX = this.camera.targetX;
+        this.dragStart.camY = this.camera.targetY;
 
-        if (this.gameMode === 'walk' && this.onWorldClick) {
-          this.onWorldClick(this.mouse.worldX, this.mouse.worldY);
+        const isOnRoad = this.checkIsOnRoad(worldPos.x, worldPos.y);
+
+        if (isOnRoad) {
+          // Touch on Road: Command Protester to walk along road & draw path
+          this.touchDragMode = 'road';
+          this.camera.isDragging = false; // Re-attach camera follow to player!
+
+          const now = performance.now();
+          // Double-tap to sprint on mobile
+          if (this.lastTouchStartTime && (now - this.lastTouchStartTime < 350)) {
+            this.isTouchSprinting = true;
+          } else {
+            this.isTouchSprinting = false;
+          }
+          this.lastTouchStartTime = now;
+          this.lastTouchClickTime = now;
+
+          if (this.gameMode === 'walk' && this.onWorldClick) {
+            this.onWorldClick(this.mouse.worldX, this.mouse.worldY);
+          }
+        } else {
+          // Touch off-road (on buildings/boxes): Pan the map!
+          this.touchDragMode = 'pan';
+          this.camera.isDragging = true; // Detach camera follow so player can pan around freely!
         }
       }
     }, { passive: false });
@@ -158,24 +210,38 @@ class InputManager {
         const t2 = e.touches[1];
         const curDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
         const ratio = curDist / this.pinchStartDist;
-        const targetZoom = Math.min(2.5, Math.max(0.4, this.pinchStartZoom * ratio));
+        const targetZoom = Math.min(2.5, Math.max(0.22, this.pinchStartZoom * ratio));
         this.camera.setZoom(targetZoom);
         return;
       }
 
-      // Drag on Road (throttled to 180ms to avoid pathfinding freeze)
       if (e.touches.length === 1 && !this.isPinching) {
-        const now = performance.now();
-        if (this.onWorldClick && (!this.lastTouchClickTime || now - this.lastTouchClickTime > 180)) {
-          this.lastTouchClickTime = now;
-          const touch = e.touches[0];
-          const rect = this.canvas.getBoundingClientRect();
-          this.mouse.x = touch.clientX - rect.left;
-          this.mouse.y = touch.clientY - rect.top;
-          const worldPos = this.camera.screenToWorld(this.mouse.x, this.mouse.y);
-          this.mouse.worldX = worldPos.x;
-          this.mouse.worldY = worldPos.y;
-          this.onWorldClick(worldPos.x, worldPos.y);
+        const touch = e.touches[0];
+
+        if (this.touchDragMode === 'pan') {
+          // DRAG AND PAN THE MAP WITH FINGER
+          const dx = (touch.clientX - this.dragStart.x);
+          const dy = (touch.clientY - this.dragStart.y);
+          this.camera.targetX = this.dragStart.camX - dx / this.camera.zoom;
+          this.camera.targetY = this.dragStart.camY - dy / this.camera.zoom;
+          this.camera.x = this.camera.targetX;
+          this.camera.y = this.camera.targetY;
+        } else if (this.touchDragMode === 'road') {
+          // Drag on Road (throttled to 150ms to avoid pathfinding freeze)
+          const now = performance.now();
+          if (this.onWorldClick && (!this.lastTouchClickTime || now - this.lastTouchClickTime > 150)) {
+            const rect = this.canvas.getBoundingClientRect();
+            this.mouse.x = touch.clientX - rect.left;
+            this.mouse.y = touch.clientY - rect.top;
+            const worldPos = this.camera.screenToWorld(this.mouse.x, this.mouse.y);
+            const isOnRoad = this.checkIsOnRoad(worldPos.x, worldPos.y);
+            if (isOnRoad) {
+              this.lastTouchClickTime = now;
+              this.mouse.worldX = worldPos.x;
+              this.mouse.worldY = worldPos.y;
+              this.onWorldClick(worldPos.x, worldPos.y);
+            }
+          }
         }
       }
     }, { passive: false });
@@ -186,6 +252,7 @@ class InputManager {
       }
       if (e.touches.length === 0) {
         this.mouse.isDown = false;
+        this.touchDragMode = null;
       }
     });
   }

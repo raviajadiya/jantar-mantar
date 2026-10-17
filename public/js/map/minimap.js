@@ -104,19 +104,22 @@ class DilliMinimap {
       ctx.stroke();
     });
 
+    const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 768);
+
     // 5. Draw Police Officers (Red Dots with Alert Pulse)
     policeOfficers.forEach(p => {
       const px = p.x * scaleX;
       const py = p.y * scaleY;
+      const pRad = p.state === 'chase' ? (isMobile ? 5 : 4) : (isMobile ? 3.5 : 2.5);
 
       ctx.fillStyle = p.state === 'chase' ? '#ef4444' : '#f97316';
       ctx.beginPath();
-      ctx.arc(px, py, p.state === 'chase' ? 4 : 2.5, 0, Math.PI * 2);
+      ctx.arc(px, py, pRad, 0, Math.PI * 2);
       ctx.fill();
 
       if (p.state === 'chase') {
         ctx.strokeStyle = '#dc2626';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = isMobile ? 1.5 : 1;
         ctx.stroke();
       }
     });
@@ -128,9 +131,9 @@ class DilliMinimap {
 
       ctx.fillStyle = '#16a34a';
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = isMobile ? 2 : 1.5;
       ctx.beginPath();
-      ctx.arc(plx, ply, 4.5, 0, Math.PI * 2);
+      ctx.arc(plx, ply, isMobile ? 6 : 4.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     }

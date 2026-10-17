@@ -145,12 +145,15 @@ class ProtesterPlayer {
   }
 
   draw(ctx, mapMode = 'standard') {
+    const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 768);
+    const charScale = isMobile ? 2.1 : 1.0;
+
     ctx.save();
 
     // 1. Draw Active Waypoint Path Line
     if (this.path && this.path.length > 0 && this.currentWaypointIndex < this.path.length) {
-      ctx.strokeStyle = 'rgba(249, 115, 22, 0.5)';
-      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
+      ctx.lineWidth = isMobile ? 5 : 3.5;
       ctx.setLineDash([8, 6]);
       ctx.beginPath();
       ctx.moveTo(this.x, this.y);
@@ -164,19 +167,36 @@ class ProtesterPlayer {
       const finalTarget = this.path[this.path.length - 1];
       ctx.fillStyle = '#f97316';
       ctx.beginPath();
-      ctx.arc(finalTarget.x, finalTarget.y, 7, 0, Math.PI * 2);
+      ctx.arc(finalTarget.x, finalTarget.y, isMobile ? 10 : 7, 0, Math.PI * 2);
       ctx.fill();
+      if (isMobile) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
     }
 
     // 2. Orange Walking Ring Indicator
     ctx.strokeStyle = '#f97316';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = isMobile ? 3.5 : 2.5;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, 22, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, 20 * charScale, 0, Math.PI * 2);
     ctx.stroke();
+
+    if (isMobile) {
+      // Subtle pulse aura around protester on mobile for instant visibility from far away
+      ctx.strokeStyle = 'rgba(249, 115, 22, 0.28)';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 20 * charScale + 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
 
     // 3. Protester Body
     ctx.translate(this.x, this.y);
+    if (charScale !== 1.0) {
+      ctx.scale(charScale, charScale);
+    }
     const sway = this.isMoving ? Math.sin(this.animTime * (this.isRunning ? 20 : 12)) * 3.5 : 0;
 
     // Shadow
@@ -268,24 +288,26 @@ class ProtesterPlayer {
     ctx.restore();
 
     // Role / Player Identity Bubble
-    this.drawLabel(ctx, this.x, this.y - 36, this.speechText);
+    const labelY = this.y - (34 * charScale + (isMobile ? 12 : 2));
+    this.drawLabel(ctx, this.x, labelY, this.speechText, isMobile);
   }
 
-  drawLabel(ctx, x, y, text) {
+  drawLabel(ctx, x, y, text, isMobile = false) {
     ctx.save();
-    ctx.font = 'bold 10px "Outfit", "Segoe UI", sans-serif';
+    const fontSize = isMobile ? 12 : 10;
+    ctx.font = `bold ${fontSize}px "Outfit", "Segoe UI", sans-serif`;
     const tw = ctx.measureText(text).width;
-    const bw = tw + 20;
-    const bh = 22;
+    const bw = tw + (isMobile ? 22 : 20);
+    const bh = isMobile ? 24 : 22;
 
     const badgeBorder = (this.countryFlag && this.countryFlag.color) || '#f59e0b';
 
     // Dark glassmorphic capsule
     ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
     ctx.strokeStyle = badgeBorder;
-    ctx.lineWidth = 1.6;
+    ctx.lineWidth = isMobile ? 2.2 : 1.6;
     ctx.beginPath();
-    ctx.roundRect(x - bw / 2, y - bh / 2, bw, bh, 6);
+    ctx.roundRect(x - bw / 2, y - bh / 2, bw, bh, isMobile ? 7 : 6);
     ctx.fill();
     ctx.stroke();
 
@@ -298,9 +320,9 @@ class ProtesterPlayer {
     // Pointer notch
     ctx.fillStyle = badgeBorder;
     ctx.beginPath();
-    ctx.moveTo(x, y + bh / 2 + 5);
-    ctx.lineTo(x - 4, y + bh / 2);
-    ctx.lineTo(x + 4, y + bh / 2);
+    ctx.moveTo(x, y + bh / 2 + (isMobile ? 5 : 5));
+    ctx.lineTo(x - (isMobile ? 5 : 4), y + bh / 2);
+    ctx.lineTo(x + (isMobile ? 5 : 4), y + bh / 2);
     ctx.closePath();
     ctx.fill();
 

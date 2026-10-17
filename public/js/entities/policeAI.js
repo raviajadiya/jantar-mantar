@@ -181,8 +181,9 @@ class PoliceAIManager {
 
           this.followPath(officer, officer.chaseSpeed, deltaTime);
 
-          // Catch Condition (< 24px, out of grace, with line of sight, and not in sanctuary)
-          if (canDetectPlayer && distToPlayer < 24 && onCatchProtester) {
+          // Catch Condition (adapted for mobile scale: < 30px on mobile, < 24px on desktop)
+          const catchDist = (typeof window !== 'undefined' && window.innerWidth <= 768) ? 30 : 24;
+          if (canDetectPlayer && distToPlayer < catchDist && onCatchProtester) {
             onCatchProtester(officer);
           }
         }
@@ -249,10 +250,13 @@ class PoliceAIManager {
   }
 
   drawOfficer(ctx, pol, mapMode) {
+    const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 768);
+    const charScale = isMobile ? 2.1 : 1.0;
+
     ctx.save();
     ctx.translate(pol.x, pol.y);
 
-    // Vision cone
+    // Vision cone (accurate world scale gameplay boundary)
     if (pol.state === 'chase') {
       ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
       ctx.beginPath();
@@ -265,17 +269,47 @@ class PoliceAIManager {
       ctx.fill();
     }
 
+    // On mobile, draw an alert / identification ring around police so they can be easily spotted from far away!
+    if (isMobile) {
+      if (pol.state === 'chase') {
+        const pulse = 1 + Math.sin(this.animTime * 10) * 0.12;
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, 16 * charScale * pulse, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.strokeStyle = 'rgba(30, 58, 138, 0.45)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15 * charScale, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    // Scale officer graphics
+    ctx.save();
+    if (charScale !== 1.0) {
+      ctx.scale(charScale, charScale);
+    }
+
     // Shadow
     ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
     ctx.beginPath();
     ctx.ellipse(0, 8, 8, 4, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Uniform
+    // Uniform (Khaki)
     ctx.fillStyle = '#b49f7d';
     ctx.fillRect(-6, -5, 12, 14);
 
-    // Police Cap
+    // Uniform Belt & Badge
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(-6, 3, 12, 2.5);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(-1, 3, 2, 2.5);
+
+    // Police Cap (Navy blue with Red band)
     ctx.fillStyle = '#1e3a8a';
     ctx.beginPath();
     ctx.arc(0, -11, 6, 0, Math.PI * 2);
@@ -283,7 +317,7 @@ class PoliceAIManager {
     ctx.fillStyle = '#dc2626';
     ctx.fillRect(-3, -16, 6, 3);
 
-    // Lathi
+    // Lathi (Police baton)
     ctx.strokeStyle = '#78350f';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -291,32 +325,46 @@ class PoliceAIManager {
     ctx.lineTo(13, 8);
     ctx.stroke();
 
-    ctx.restore();
+    // Flashing Siren above cap during chase
+    if (pol.state === 'chase') {
+      const isRed = Math.floor(this.animTime * 8) % 2 === 0;
+      ctx.fillStyle = isRed ? '#ef4444' : '#3b82f6';
+      ctx.beginPath();
+      ctx.arc(0, -20, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore(); // restore charScale
+
+    ctx.restore(); // restore translate
 
     // Bubble Text
     if (pol.bubbleTimer > 0) {
-      this.drawBubble(ctx, pol.x, pol.y - 28, pol.bubbleText, pol.state === 'chase');
+      const bubbleY = pol.y - (28 * charScale + (isMobile ? 10 : 0));
+      this.drawBubble(ctx, pol.x, bubbleY, pol.bubbleText, pol.state === 'chase', isMobile);
     }
   }
 
-  drawBubble(ctx, x, y, text, isAlert) {
+  drawBubble(ctx, x, y, text, isAlert, isMobile = false) {
     ctx.save();
-    ctx.font = isAlert ? 'bold 9.5px sans-serif' : '8.5px sans-serif';
+    const fontSize = isMobile ? (isAlert ? 12 : 11) : (isAlert ? 9.5 : 8.5);
+    ctx.font = isAlert ? `bold ${fontSize}px sans-serif` : `${fontSize}px sans-serif`;
     const tw = ctx.measureText(text).width;
-    const bw = tw + 14;
-    const bh = 18;
+    const bw = tw + (isMobile ? 20 : 14);
+    const bh = isMobile ? 22 : 18;
 
     ctx.fillStyle = isAlert ? '#dc2626' : 'rgba(15, 23, 42, 0.9)';
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = isMobile ? 1.6 : 1;
     ctx.beginPath();
-    ctx.roundRect(x - bw / 2, y - bh / 2, bw, bh, 4);
+    ctx.roundRect(x - bw / 2, y - bh / 2, bw, bh, isMobile ? 6 : 4);
     ctx.fill();
     ctx.stroke();
 
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
-    ctx.fillText(text, x, y + 3.5);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
     ctx.restore();
   }
 
