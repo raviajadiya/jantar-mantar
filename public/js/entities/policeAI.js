@@ -1,0 +1,251 @@
+// Delhi Police AI: Continuous Road Patrol, Line-of-Sight Chase & Disengage System
+class PoliceAIManager {
+  constructor(config, roadNetwork) {
+    this.config = config;
+    this.roadNetwork = roadNetwork;
+    this.officers = [];
+    this.animTime = 0;
+
+    this.initOfficers();
+  }
+
+  initOfficers() {
+    const center = this.config.circularLayout.center;
+    const rings = this.config.circularLayout.rings;
+    const radials = this.config.circularLayout.radialAvenues;
+
+    // Station police officers across key intersections with defined patrol directions
+    const spawnConfigs = [
+      { ringIdx: 3, radIdx: 1, name: 'Const. Bhati', patrolType: 'ring', dir: 1 },
+      { ringIdx: 3, radIdx: 5, name: 'Const. Sharma', patrolType: 'ring', dir: -1 },
+      { ringIdx: 2, radIdx: 0, name: 'SI Verma', patrolType: 'radial', spoke: 0 },
+      { ringIdx: 2, radIdx: 3, name: 'Const. Yadav', patrolType: 'ring', dir: 1 },
+      { ringIdx: 2, radIdx: 6, name: 'Const. Meena', patrolType: 'radial', spoke: 6 },
+      { ringIdx: 1, radIdx: 2, name: 'ACP Malik', patrolType: 'ring', dir: -1 },
+      { ringIdx: 1, radIdx: 4, name: 'Insp. Chauhan', patrolType: 'radial', spoke: 4 },
+      { ringIdx: 4, radIdx: 7, name: 'Const. Singh', patrolType: 'ring', dir: 1 }
+    ];
+
+    this.officers = spawnConfigs.map((cfg, idx) => {
+      const ring = rings[cfg.ringIdx];
+      const radial = radials[cfg.radIdx];
+      const x = center.x + Math.cos(radial.angle) * ring.radius;
+      const y = center.y + Math.sin(radial.angle) * ring.radius;
+
+      return {
+        id: `pol-${idx}`,
+        name: cfg.name,
+        x,
+        y,
+        angle: radial.angle,
+        state: 'patrol', // 'patrol', 'chase', 'lost'
+        speed: 95, // Continuous patrol speed
+        chaseSpeed: 170, // Chase speed
+        visionRange: 220, // Spot range
+        loseChaseRange: 380, // Distance to escape
+        
+        // Navigation
+        currentPath: [],
+        waypointIndex: 0,
+        patrolType: cfg.patrolType,
+        ringIdx: cfg.ringIdx,
+        patrolDir: cfg.dir || 1,
+        spokeIdx: cfg.spoke !== undefined ? cfg.spoke : 0,
+
+        // Status bubble
+        bubbleText: "Patrolling road",
+        bubbleTimer: 0
+      };
+    });
+  }
+
+  update(deltaTime, player, onCatchProtester) {
+    this.animTime += deltaTime;
+
+    this.officers.forEach(officer => {
+      officer.bubbleTimer -= deltaTime;
+
+      const distToPlayer = Math.hypot(player.x - officer.x, player.y - officer.y);
+      const hasLOS = distToPlayer < officer.visionRange && this.roadNetwork.hasRoadLineOfSight(officer.x, officer.y, player.x, player.y);
+
+      // 1. Patrol State
+      if (officer.state === 'patrol') {
+        if (hasLOS) {
+          officer.state = 'chase';
+          officer.bubbleText = '🚨 RUKO! STOP!';
+          officer.bubbleTimer = 2.5;
+          officer.currentPath = this.roadNetwork.findPath(officer.x, officer.y, player.x, player.y);
+          officer.waypointIndex = 0;
+        } else {
+          // Continuously Patrol Along Road
+          this.patrolContinuous(officer, deltaTime);
+        }
+      } 
+      // 2. Chase State
+      else if (officer.state === 'chase') {
+        if (distToPlayer > officer.loseChaseRange) {
+          // Protester successfully ran away!
+          officer.state = 'lost';
+          officer.bubbleText = '❓ Lost him! Resuming patrol';
+          officer.bubbleTimer = 2.5;
+          officer.currentPath = [];
+        } else {
+          // Update chase path periodically
+          if (Math.random() < 0.15 || !officer.currentPath || officer.currentPath.length === 0) {
+            officer.currentPath = this.roadNetwork.findPath(officer.x, officer.y, player.x, player.y);
+            officer.waypointIndex = 0;
+          }
+
+          this.followPath(officer, officer.chaseSpeed, deltaTime);
+
+          // Catch Condition (< 25px)
+          if (distToPlayer < 25) {
+            if (onCatchProtester) onCatchProtester(officer);
+          }
+        }
+      } 
+      // 3. Lost State
+      else if (officer.state === 'lost') {
+        if (officer.bubbleTimer <= 0) {
+          officer.state = 'patrol';
+        } else {
+          // Keep moving slowly while looking around
+          this.patrolContinuous(officer, deltaTime * 0.6);
+        }
+      }
+    });
+  }
+
+  // Smooth, continuous patrol along road rings or radial avenues
+  patrolContinuous(officer, deltaTime) {
+    if (!officer.currentPath || officer.waypointIndex >= officer.currentPath.length) {
+      // Find current node and pick next smooth patrol waypoint
+      const curNode = this.roadNetwork.findClosestNode(officer.x, officer.y);
+      if (curNode) {
+        const neighbors = this.roadNetwork.edges.get(curNode.id) || [];
+        if (neighbors.length > 0) {
+          // Pick a random connected road node
+          const nextId = neighbors[Math.floor(Math.random() * neighbors.length)];
+          const nextNode = this.roadNetwork.nodes[nextId];
+          officer.currentPath = [{ x: nextNode.x, y: nextNode.y }];
+          officer.waypointIndex = 0;
+        }
+      }
+    }
+
+    this.followPath(officer, officer.speed, deltaTime);
+  }
+
+  followPath(officer, speed, deltaTime) {
+    if (!officer.currentPath || officer.waypointIndex >= officer.currentPath.length) return;
+
+    const target = officer.currentPath[officer.waypointIndex];
+    const dx = target.x - officer.x;
+    const dy = target.y - officer.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist < 8) {
+      officer.waypointIndex++;
+    } else {
+      officer.angle = Math.atan2(dy, dx);
+      const step = Math.min(dist, speed * deltaTime);
+      officer.x += (dx / dist) * step;
+      officer.y += (dy / dist) * step;
+    }
+  }
+
+  draw(ctx, mapMode = 'standard') {
+    this.officers.forEach(pol => {
+      this.drawOfficer(ctx, pol, mapMode);
+    });
+  }
+
+  drawOfficer(ctx, pol, mapMode) {
+    ctx.save();
+    ctx.translate(pol.x, pol.y);
+
+    // Vision cone
+    if (pol.state === 'chase') {
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
+      ctx.beginPath();
+      ctx.arc(0, 0, pol.visionRange, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
+      ctx.beginPath();
+      ctx.arc(0, 0, pol.visionRange * 0.75, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    ctx.beginPath();
+    ctx.ellipse(0, 8, 8, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Uniform
+    ctx.fillStyle = '#b49f7d';
+    ctx.fillRect(-6, -5, 12, 14);
+
+    // Police Cap
+    ctx.fillStyle = '#1e3a8a';
+    ctx.beginPath();
+    ctx.arc(0, -11, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(-3, -16, 6, 3);
+
+    // Lathi
+    ctx.strokeStyle = '#78350f';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(7, -6);
+    ctx.lineTo(13, 8);
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Bubble Text
+    if (pol.bubbleTimer > 0) {
+      this.drawBubble(ctx, pol.x, pol.y - 28, pol.bubbleText, pol.state === 'chase');
+    }
+  }
+
+  drawBubble(ctx, x, y, text, isAlert) {
+    ctx.save();
+    ctx.font = isAlert ? 'bold 9.5px sans-serif' : '8.5px sans-serif';
+    const tw = ctx.measureText(text).width;
+    const bw = tw + 14;
+    const bh = 18;
+
+    ctx.fillStyle = isAlert ? '#dc2626' : 'rgba(15, 23, 42, 0.9)';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x - bw / 2, y - bh / 2, bw, bh, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, x, y + 3.5);
+    ctx.restore();
+  }
+
+  isAnyPoliceChasing() {
+    return this.officers.some(o => o.state === 'chase');
+  }
+
+  getClosestPoliceDistance(player) {
+    let minDist = Infinity;
+    this.officers.forEach(o => {
+      const d = Math.hypot(player.x - o.x, player.y - o.y);
+      if (d < minDist) minDist = d;
+    });
+    return minDist;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.PoliceAIManager = PoliceAIManager;
+}

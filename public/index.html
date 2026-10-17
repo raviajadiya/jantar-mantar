@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jantar Mantar 2.0 - Circular Road Stealth Protest Game</title>
+  <meta name="description" content="Clean 2D view: Circular road maze with central Jantar Mantar, flag collections, and police stealth AI.">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Main 2D Canvas Viewport -->
+    <canvas id="map-canvas"></canvas>
+
+    <!-- 1. CLEAN FLAGS COUNT BOARD (Top-Left) -->
+    <div class="clean-hud-top">
+      <div class="flag-counter-board">
+        <div class="flag-icon">🚩</div>
+        <div class="flag-text-group">
+          <div class="flag-label">FLAGS COLLECTED</div>
+          <div class="flag-count-number"><span id="flags-collected-count">0 / 6</span></div>
+        </div>
+        <div id="threat-status-badge" class="threat-badge stealth">
+          🟢 SAFE
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. MAP CONTROLS & ZOOM WIDGET (Top-Right) -->
+    <div class="clean-zoom-widget">
+      <button id="btn-zoom-in" class="zoom-btn" title="Zoom In (+)">➕</button>
+      <button id="btn-reset-cam" class="zoom-btn" title="Reset View (Center)">⊙</button>
+      <button id="btn-zoom-out" class="zoom-btn" title="Zoom Out (−)">➖</button>
+    </div>
+
+    <!-- 3. RADAR MINIMAP (Bottom-Right) -->
+    <div class="minimap-wrapper">
+      <div class="minimap-header">
+        <span>CIRCULAR DILLI RADAR</span>
+        <span class="star-dest">★ Jantar Mantar</span>
+      </div>
+      <canvas id="minimap-canvas" width="200" height="200"></canvas>
+    </div>
+
+    <!-- VICTORY MODAL -->
+    <div id="victory-modal" class="modal-backdrop">
+      <div class="landmark-card-modal" style="border-color:#22c55e; text-align:center;">
+        <div style="font-size:3rem; margin-bottom:10px;">🏆🎉🚩</div>
+        <h2 class="modal-title" style="color:#22c55e;">VICTORY ACHIEVED!</h2>
+        <div style="color:#facc15; font-size:1.1rem; margin-top:4px; font-weight:700;">
+          All 6 Flags Planted at Center Jantar Mantar!
+        </div>
+        <div class="modal-body" style="margin-top:16px;">
+          <p>You outmaneuvered Delhi Police patrols, navigated through the circular concentric roads, collected all protest flags, and safely united at the <strong>Vrihat Samrat Yantra</strong> sanctuary!</p>
+        </div>
+        <div class="modal-footer" style="justify-content:center;">
+          <button id="btn-restart-victory" class="btn-teleport" style="background:#16a34a;">🔄 Play Again</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARREST / DETAINED MODAL -->
+    <div id="arrest-modal" class="modal-backdrop">
+      <div class="landmark-card-modal" style="border-color:#ef4444; text-align:center;">
+        <div style="font-size:3rem; margin-bottom:10px;">🚨👮🚔</div>
+        <h2 class="modal-title" style="color:#ef4444;">PROTESTER DETAINED!</h2>
+        <div style="color:#f87171; font-size:1.05rem; margin-top:4px; font-weight:700;">
+          Caught by <span id="arresting-officer-name">Delhi Police</span>!
+        </div>
+        <div class="modal-body" style="margin-top:16px;">
+          <p>You were intercepted on the circular road corridor. Sprint onto another radial road or turn corners behind buildings to break their line-of-sight!</p>
+        </div>
+        <div class="modal-footer" style="justify-content:center;">
+          <button id="btn-restart-arrest" class="btn-teleport" style="background:#dc2626;">🔄 Try Again</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts in order of dependency -->
+  <script src="js/config.js"></script>
+  <script src="js/engine/camera.js"></script>
+  <script src="js/engine/input.js"></script>
+  <script src="js/map/roadNetwork.js"></script>
+  <script src="js/map/circularMapDraw.js"></script>
+  <script src="js/map/minimap.js"></script>
+  <script src="js/entities/flags.js"></script>
+  <script src="js/entities/player.js"></script>
+  <script src="js/entities/policeAI.js"></script>
+  <script src="js/ui/hud.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

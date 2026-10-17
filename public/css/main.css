@@ -1,0 +1,782 @@
+/* Jantar Mantar 2.0 - Rich Aesthetics & HUD Styling */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --primary-font: 'Outfit', sans-serif;
+  --body-font: 'Inter', sans-serif;
+  
+  --bg-dark: rgba(15, 23, 42, 0.88);
+  --bg-darker: rgba(10, 15, 29, 0.96);
+  --glass-bg: rgba(26, 32, 44, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  
+  --accent-gold: #f59e0b;
+  --accent-orange: #f97316;
+  --accent-red: #ef4444;
+  --accent-green: #22c55e;
+  --accent-blue: #3b82f6;
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-accent: #fde047;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #1e293b;
+  font-family: var(--primary-font);
+  color: var(--text-primary);
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#map-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+
+/* ========================================================
+   CLEAN MINIMAL HUD: Flag Counter Board & Zoom Controls
+   ======================================================== */
+.clean-hud-top {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.flag-counter-board {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1.5px solid #f59e0b;
+  border-radius: 16px;
+  padding: 10px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+}
+
+.flag-icon {
+  font-size: 1.8rem;
+  filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.5));
+  animation: flagWave 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes flagWave {
+  from { transform: rotate(-6deg); }
+  to { transform: rotate(8deg); }
+}
+
+.flag-text-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.flag-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #fed7aa;
+  text-transform: uppercase;
+}
+
+.flag-count-number {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #facc15;
+  font-family: var(--primary-font);
+  line-height: 1.1;
+}
+
+/* Floating Zoom Widget */
+.clean-zoom-widget {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 50;
+}
+
+.zoom-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.zoom-btn:hover {
+  background: #b45309;
+  border-color: #f59e0b;
+  transform: scale(1.06);
+}
+
+.zoom-btn:active {
+  transform: scale(0.96);
+}
+
+.top-left-panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.cause-badge {
+  background: var(--bg-dark);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 12px;
+  padding: 10px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.cause-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cause-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fist-icon {
+  font-size: 1.4rem;
+}
+
+.cause-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #fef08a;
+  text-transform: uppercase;
+}
+
+.cause-score {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--accent-gold);
+}
+
+.cause-sub {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.daily-tasks-card {
+  background: var(--bg-dark);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  width: 260px;
+  backdrop-filter: blur(8px);
+}
+
+.task-heading {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #fed7aa;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.task-item label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.task-item input[type="checkbox"] {
+  accent-color: var(--accent-gold);
+}
+
+.task-progress {
+  font-size: 0.75rem;
+  font-family: monospace;
+  color: var(--text-secondary);
+}
+
+/* ========================================================
+   TOP-CENTER HUD: Round Timer & Dharna Power Meter
+   ======================================================== */
+.top-center-panel {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 20;
+}
+
+.round-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--bg-dark);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: 24px;
+  padding: 6px 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+}
+
+.threat-badge {
+  padding: 6px 18px;
+  border-radius: 20px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+}
+
+.threat-badge.stealth {
+  background: rgba(22, 163, 74, 0.9);
+  color: #ffffff;
+  border: 1px solid #4ade80;
+}
+
+.threat-badge.alert {
+  background: rgba(217, 119, 6, 0.9);
+  color: #ffffff;
+  border: 1px solid #fde047;
+}
+
+.threat-badge.chase {
+  background: rgba(220, 38, 38, 0.95);
+  color: #ffffff;
+  border: 1px solid #fca5a5;
+  animation: pulseChase 0.8s infinite alternate;
+}
+
+@keyframes pulseChase {
+  from { transform: scale(1); box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+  to { transform: scale(1.04); box-shadow: 0 0 25px rgba(239, 68, 68, 0.9); }
+}
+
+.flags-progress-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245, 158, 11, 0.2);
+  border: 1px solid var(--accent-gold);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #fef08a;
+}
+
+.timer-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.power-box {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #facc15;
+}
+
+.detained-box {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.objective-banner {
+  background: rgba(249, 115, 22, 0.9);
+  color: #ffffff;
+  padding: 4px 18px;
+  border-radius: 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+.hint-subtext {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+/* ========================================================
+   TOP-RIGHT HUD: Leaderboard & Map Controls Toolbar
+   ======================================================== */
+.top-right-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  z-index: 20;
+}
+
+.map-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-dark);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 6px 12px;
+  backdrop-filter: blur(8px);
+}
+
+.toolbar-btn {
+  background: #334155;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-family: var(--primary-font);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toolbar-btn:hover {
+  background: #475569;
+  border-color: var(--accent-gold);
+}
+
+.toolbar-btn.btn-active {
+  background: #b45309;
+  border-color: #f59e0b;
+}
+
+.toolbar-select {
+  background: #1e293b;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: var(--primary-font);
+  font-size: 0.8rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.leaderboard-card {
+  background: var(--bg-dark);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  width: 220px;
+  backdrop-filter: blur(8px);
+}
+
+.lb-header {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #94a3b8;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.lb-ping {
+  color: #22c55e;
+  font-size: 0.75rem;
+}
+
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  padding: 2px 0;
+}
+
+.lb-name {
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.lb-name.highlight {
+  color: var(--accent-gold);
+  font-weight: 700;
+}
+
+.lb-score {
+  font-family: monospace;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+/* ========================================================
+   BOTTOM HUD: Minimap, Compass Arrow, Action Log, Ticker
+   ======================================================== */
+.nav-beacon-container {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.arrow-icon {
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-bottom: 22px solid #f97316;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+  transition: transform 0.1s linear;
+}
+
+.distance-pill {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  color: #ffffff;
+  padding: 4px 14px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Bottom Left Action Log */
+.bottom-left-panel {
+  position: absolute;
+  bottom: 50px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 320px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.action-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.log-item {
+  background: rgba(15, 23, 42, 0.75);
+  border-left: 3px solid var(--accent-gold);
+  padding: 4px 10px;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.75rem;
+  color: #f1f5f9;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Bottom Right DILLI MAP Minimap Box (Clean Floating Radar) */
+.minimap-wrapper {
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  background: var(--bg-dark);
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  z-index: 20;
+}
+
+.minimap-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1e293b;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #fef08a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.star-dest {
+  color: var(--accent-gold);
+  font-size: 0.72rem;
+}
+
+#minimap-canvas {
+  display: block;
+  cursor: pointer;
+  background: #f5efe3;
+}
+
+/* Zoom controls underneath minimap */
+.minimap-zoom-bar {
+  display: flex;
+  background: #1e293b;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.minimap-zoom-btn {
+  flex: 1;
+  background: transparent;
+  color: #f8fafc;
+  border: none;
+  padding: 4px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.minimap-zoom-btn:hover {
+  background: #334155;
+}
+
+/* Bottom Red BREAKING News Ticker (matching screenshot) */
+.bottom-ticker-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 32px;
+  background: #dc2626; /* Breaking News Red */
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  z-index: 30;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.ticker-tag {
+  background: #000000;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 900;
+  padding: 0 16px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  letter-spacing: 1px;
+}
+
+.ticker-marquee-wrap {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker-content {
+  display: inline-block;
+  padding-left: 100%;
+  animation: marquee 35s linear infinite;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+@keyframes marquee {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-100%, 0); }
+}
+
+/* ========================================================
+   LANDMARK INSPECTION MODAL (History, Science, & Strategy)
+   ======================================================== */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.65);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  backdrop-filter: blur(6px);
+}
+
+.modal-backdrop.active {
+  display: flex;
+}
+
+.landmark-card-modal {
+  background: #0f172a;
+  border: 2px solid var(--accent-gold);
+  border-radius: 16px;
+  width: 520px;
+  max-width: 90vw;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+  animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.modal-badge {
+  display: inline-block;
+  background: #b45309;
+  color: #fef08a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.modal-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.modal-hindi-title {
+  font-size: 1.05rem;
+  color: var(--accent-gold);
+  margin-top: 2px;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: #ffffff;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+.modal-section-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.modal-footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn-teleport {
+  background: #b45309;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-family: var(--primary-font);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-teleport:hover {
+  background: #d97706;
+}

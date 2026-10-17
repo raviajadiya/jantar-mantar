@@ -1,0 +1,164 @@
+// Interactive Circular Concentric Dilli Radar Minimap
+class DilliMinimap {
+  constructor(canvasId, worldWidth, worldHeight, config, roadNetwork) {
+    this.canvas = document.getElementById(canvasId);
+    this.ctx = this.canvas.getContext('2d');
+    this.worldWidth = worldWidth;
+    this.worldHeight = worldHeight;
+    this.config = config;
+    this.roadNetwork = roadNetwork;
+    this.width = this.canvas.width;
+    this.height = this.canvas.height;
+
+    this.onMinimapClick = null;
+    this.initClick();
+  }
+
+  initClick() {
+    this.canvas.addEventListener('click', (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+
+      const worldX = (clickX / this.width) * this.worldWidth;
+      const worldY = (clickY / this.height) * this.worldHeight;
+
+      if (this.onMinimapClick) {
+        this.onMinimapClick(worldX, worldY);
+      }
+    });
+  }
+
+  draw(camera, player, policeOfficers = [], flags = []) {
+    const ctx = this.ctx;
+    const w = this.width;
+    const h = this.height;
+
+    // Background
+    ctx.fillStyle = '#f5efe3';
+    ctx.fillRect(0, 0, w, h);
+
+    const scaleX = w / this.worldWidth;
+    const scaleY = h / this.worldHeight;
+    const cx = this.config.circularLayout.center.x * scaleX;
+    const cy = this.config.circularLayout.center.y * scaleY;
+
+    // 1. Draw Concentric Road Rings
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 3.5;
+    this.config.circularLayout.rings.forEach((ring, idx) => {
+      ctx.beginPath();
+      ctx.arc(cx, cy, ring.radius * scaleX, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    // 2. Draw 8 Radial Avenues
+    const maxR = this.config.circularLayout.rings[this.config.circularLayout.rings.length - 1].radius * scaleX;
+    this.config.circularLayout.radialAvenues.forEach(rad => {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(rad.angle) * maxR, cy + Math.sin(rad.angle) * maxR);
+      ctx.stroke();
+    });
+
+    // 3. Central Jantar Mantar Green Circle & Golden Star
+    ctx.fillStyle = '#86efac';
+    ctx.beginPath();
+    ctx.arc(cx, cy, this.config.circularLayout.rings[0].radius * scaleX, 0, Math.PI * 2);
+    ctx.fill();
+
+    this.drawStar(cx, cy, 5, 8, 4, '#eab308');
+
+    // 4. Draw Uncollected Protest Flags
+    flags.forEach(f => {
+      if (f.isCollected) return;
+      const fx = f.x * scaleX;
+      const fy = f.y * scaleY;
+
+      ctx.fillStyle = f.color || '#ef4444';
+      ctx.beginPath();
+      ctx.arc(fx, fy, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    // 5. Draw Police Officers (Red Dots with Alert Pulse)
+    policeOfficers.forEach(p => {
+      const px = p.x * scaleX;
+      const py = p.y * scaleY;
+
+      ctx.fillStyle = p.state === 'chase' ? '#ef4444' : '#f97316';
+      ctx.beginPath();
+      ctx.arc(px, py, p.state === 'chase' ? 4 : 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (p.state === 'chase') {
+        ctx.strokeStyle = '#dc2626';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    });
+
+    // 6. Draw Player (Green Dot)
+    if (player) {
+      const plx = player.x * scaleX;
+      const ply = player.y * scaleY;
+
+      ctx.fillStyle = '#16a34a';
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(plx, ply, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // 7. Camera Viewport Box on Radar
+    const camBounds = camera.getVisibleBounds();
+    const bx = camBounds.minX * scaleX;
+    const by = camBounds.minY * scaleY;
+    const bw = (camBounds.maxX - camBounds.minX) * scaleX;
+    const bh = (camBounds.maxY - camBounds.minY) * scaleY;
+
+    ctx.strokeStyle = 'rgba(30, 41, 59, 0.7)';
+    ctx.lineWidth = 1.2;
+    ctx.strokeRect(bx, by, bw, bh);
+  }
+
+  drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
+    const ctx = this.ctx;
+    let rot = (Math.PI / 2) * 3;
+    let x = cx;
+    let y = cy;
+    const step = Math.PI / spikes;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - outerRadius);
+    for (let i = 0; i < spikes; i++) {
+      x = cx + Math.cos(rot) * outerRadius;
+      y = cy + Math.sin(rot) * outerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+
+      x = cx + Math.cos(rot) * innerRadius;
+      y = cy + Math.sin(rot) * innerRadius;
+      ctx.lineTo(x, y);
+      rot += step;
+    }
+    ctx.lineTo(cx, cy - outerRadius);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#b45309';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.DilliMinimap = DilliMinimap;
+}
