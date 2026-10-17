@@ -7,7 +7,29 @@ class FlagManager {
     this.particles = [];
     this.animTime = 0;
 
+    this.countryFlag = null;
     this.initFlags();
+  }
+
+  // Update all map flags to match chosen country
+  setCountryFlag(countryFlag) {
+    if (!countryFlag) return;
+    this.countryFlag = countryFlag;
+    this.flags.forEach((f, idx) => {
+      f.countryEmoji = countryFlag.emoji;
+      f.countryName = countryFlag.name;
+      f.stripeColors = countryFlag.stripeColors || [countryFlag.color || '#f97316'];
+      f.color = countryFlag.color || (countryFlag.stripeColors && countryFlag.stripeColors[0]) || '#f97316';
+      f.name = `${countryFlag.emoji} Flag #${idx + 1} (${countryFlag.name})`;
+    });
+  }
+
+  hexToRgb(hex) {
+    if (!hex || hex[0] !== '#') return '245, 158, 11';
+    let c = hex.substring(1);
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    const num = parseInt(c, 16);
+    return `${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}`;
   }
 
   initFlags() {
@@ -27,6 +49,8 @@ class FlagManager {
         name: rf.name,
         label: rf.label,
         color: rf.color || '#ef4444',
+        stripeColors: ['#f97316', '#ffffff', '#16a34a'],
+        countryEmoji: '🇮🇳',
         x,
         y,
         isCollected: false,
@@ -45,7 +69,7 @@ class FlagManager {
       const dist = Math.hypot(player.x - f.x, player.y - f.y);
       if (dist < 65) {
         f.isCollected = true;
-        this.spawnCollectParticles(f.x, f.y, f.color);
+        this.spawnCollectParticles(f.x, f.y, f.stripeColors || [f.color]);
         if (onCollect) onCollect(f);
       }
     });
@@ -62,18 +86,20 @@ class FlagManager {
     }
   }
 
-  spawnCollectParticles(x, y, color) {
-    for (let i = 0; i < 24; i++) {
+  spawnCollectParticles(x, y, colors) {
+    const colorList = Array.isArray(colors) ? colors : [colors || '#f59e0b'];
+    for (let i = 0; i < 30; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 60 + Math.random() * 120;
+      const speed = 70 + Math.random() * 150;
+      const c = colorList[Math.floor(Math.random() * colorList.length)];
       this.particles.push({
         x,
         y,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        color,
-        life: 0.8 + Math.random() * 0.4,
-        size: 3 + Math.random() * 3
+        color: c,
+        life: 0.9 + Math.random() * 0.5,
+        size: 3 + Math.random() * 4
       });
     }
   }
@@ -101,11 +127,12 @@ class FlagManager {
     ctx.save();
     ctx.translate(f.x, f.y);
 
-    // Glowing base aura
+    // Glowing base aura with country color
+    const auraColor = (this.countryFlag && this.countryFlag.color) || '#f59e0b';
     const pulse = Math.sin(this.animTime * 4 + f.pulseOffset) * 0.3 + 0.7;
-    ctx.fillStyle = `rgba(245, 158, 11, ${pulse * 0.35})`;
+    ctx.fillStyle = `rgba(${this.hexToRgb(auraColor)}, ${pulse * 0.38})`;
     ctx.beginPath();
-    ctx.arc(0, 0, 24 * pulse, 0, Math.PI * 2);
+    ctx.arc(0, 0, 26 * pulse, 0, Math.PI * 2);
     ctx.fill();
 
     // Flagpole base stone
@@ -116,35 +143,57 @@ class FlagManager {
 
     // Golden Flagpole
     ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(-2, -36, 4, 38);
+    ctx.fillRect(-2, -38, 4, 40);
 
-    // Waving Banner Cloth
+    // Waving Banner Cloth with Dynamic Country Stripes
     const wave = Math.sin(this.animTime * 6 + f.pulseOffset) * 4;
-    const flagW = 28;
-    const flagH = 18;
+    const flagW = 32;
+    const flagH = 20;
 
-    ctx.fillStyle = f.color;
+    const stripes = (f.stripeColors && f.stripeColors.length > 0)
+      ? f.stripeColors
+      : ((this.countryFlag && this.countryFlag.stripeColors) || ['#f97316', '#ffffff', '#16a34a']);
+
+    const stripeH = flagH / stripes.length;
+    for (let s = 0; s < stripes.length; s++) {
+      ctx.fillStyle = stripes[s];
+      ctx.beginPath();
+      const topY = -38 + s * stripeH;
+      const botY = topY + stripeH;
+      ctx.moveTo(2, topY);
+      ctx.lineTo(2 + flagW + wave, topY + wave * 0.5);
+      ctx.lineTo(2 + flagW + wave, botY + wave * 0.5);
+      ctx.lineTo(2, botY);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Flag crisp outline
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.lineWidth = 0.9;
     ctx.beginPath();
-    ctx.moveTo(2, -36);
-    ctx.lineTo(2 + flagW + wave, -36 + wave * 0.5);
-    ctx.lineTo(2 + flagW + wave, -36 + flagH + wave * 0.5);
-    ctx.lineTo(2, -36 + flagH);
+    ctx.moveTo(2, -38);
+    ctx.lineTo(2 + flagW + wave, -38 + wave * 0.5);
+    ctx.lineTo(2 + flagW + wave, -38 + flagH + wave * 0.5);
+    ctx.lineTo(2, -38 + flagH);
     ctx.closePath();
-    ctx.fill();
+    ctx.stroke();
 
-    // Flag Label Tag
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 1;
+    // Flag Label Tag with Country Emoji
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+    ctx.strokeStyle = auraColor;
+    ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.roundRect(-40, -56, 80, 16, 4);
+    ctx.roundRect(-46, -60, 92, 18, 5);
     ctx.fill();
     ctx.stroke();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 8.5px "Segoe UI", sans-serif';
+    ctx.font = 'bold 9.5px "Outfit", "Segoe UI", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(f.name, 0, -45);
+    ctx.textBaseline = 'middle';
+    const tagEmoji = f.countryEmoji || (this.countryFlag ? this.countryFlag.emoji : '🚩');
+    ctx.fillText(`${tagEmoji} ${f.label || f.name}`, 0, -50);
 
     ctx.restore();
   }

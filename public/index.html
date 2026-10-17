@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jantar Mantar 2.0 - Circular Road Stealth Protest Game</title>
   <meta name="description" content="Clean 2D view: Circular road maze with central Jantar Mantar, flag collections, and police stealth AI.">
-  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/main.css?v=3.5">
 </head>
 <body>
   <div id="game-container">
@@ -48,102 +48,112 @@
       <canvas id="minimap-canvas" width="200" height="200"></canvas>
     </div>
 
-    <!-- START / WELCOME MODAL WITH REALTIME BACKGROUND & CUSTOMIZATION -->
+    <!-- COMPACT GAME CARD UI MODAL -->
     <div id="start-modal" class="modal-backdrop active start-screen-backdrop">
-      <div class="start-game-dialog">
-        <!-- Dialog Header -->
-        <div class="start-dialog-header">
-          <div class="game-brand-pill">
-            <span class="pulsing-green-dot"></span>
-            <span>LIVE 2D MAP • DELHI HERITAGE MAZE</span>
+      <div class="game-card-dialog">
+        <!-- Golden Game Card Corner Accents -->
+        <div class="card-corner tl"></div>
+        <div class="card-corner tr"></div>
+        <div class="card-corner bl"></div>
+        <div class="card-corner br"></div>
+
+        <!-- 1. Police vs Protester Game Banner Header -->
+        <div class="game-card-banner">
+          <div class="banner-badge-top">DELHI STEALTH CHASE // JANTAR MANTAR</div>
+          
+          <div class="banner-versus-stage">
+            <!-- Protester Side -->
+            <div class="fighter-side protester">
+              <div class="fighter-avatar">
+                <span class="fighter-flag" id="banner-fighter-flag">🇮🇳</span>
+                <span class="fighter-icon">✊</span>
+              </div>
+              <span class="fighter-title">PROTESTER</span>
+            </div>
+
+            <!-- VS Emblem -->
+            <div class="versus-emblem">
+              <span class="vs-lightning">⚡</span>
+              <span class="vs-text">VS</span>
+            </div>
+
+            <!-- Police Side -->
+            <div class="fighter-side police">
+              <div class="fighter-avatar">
+                <span class="police-siren">🚨</span>
+                <span class="fighter-icon">👮</span>
+              </div>
+              <span class="fighter-title">DELHI POLICE</span>
+            </div>
           </div>
-          <h1 class="start-title">JANTAR MANTAR 2.0</h1>
-          <p class="start-subtitle">Circular Road Stealth Adventure • 6 Flags • Evade Police Patrols</p>
+
+          <h2 class="game-card-title">JANTAR MANTAR 2.0</h2>
+          <div class="game-card-subtitle">Infiltrate Concentric Rings • Collect 6 Flags • Evade Police</div>
         </div>
 
-        <!-- Customizer Content: Left Form, Right Hero Preview -->
-        <div class="start-customizer-grid">
-          <!-- Left Column: Name & Flag Picker -->
-          <div class="customizer-controls">
-            <!-- 1. Player Name Input -->
-            <div class="start-form-section">
-              <label for="player-name-input" class="start-field-label">
-                <span class="label-icon">👤</span>
-                <span>PLAYER / PROTESTER NAME (તમારું નામ)</span>
-              </label>
-              <div class="name-input-wrapper">
-                <input 
-                  type="text" 
-                  id="player-name-input" 
-                  class="start-input-text" 
-                  placeholder="Enter your name..." 
-                  value="Aam Aadmi" 
-                  maxlength="20"
-                  autocomplete="off"
-                />
-                <button type="button" id="btn-random-name" class="btn-dice" title="Random Hero Name">🎲</button>
-              </div>
-            </div>
-
-            <!-- 2. Country Flag Picker -->
-            <div class="start-form-section">
-              <label class="start-field-label">
-                <span class="label-icon">🚩</span>
-                <span>CHOOSE COUNTRY / FACTION FLAG (દેશનો ધ્વજ પસંદ કરો)</span>
-              </label>
-              <div class="flags-picker-scrollable" id="flags-picker-container">
-                <!-- Injected via JavaScript with interactive flag chips -->
-              </div>
+        <!-- 2. Simple & Short Setup Controls -->
+        <div class="game-card-body">
+          <!-- Player / Protester Name Input -->
+          <div class="game-input-group">
+            <label for="player-name-input" class="game-label">
+              <span>👤 PROTESTER NAME (તમારું નામ)</span>
+            </label>
+            <div class="input-with-button">
+              <input 
+                type="text" 
+                id="player-name-input" 
+                class="game-text-input" 
+                placeholder="Enter player name..." 
+                value="Aam Aadmi" 
+                maxlength="18"
+                autocomplete="off"
+              />
+              <button type="button" id="btn-random-name" class="game-dice-btn" title="Random Indian Hero Name">🎲</button>
             </div>
           </div>
 
-          <!-- Right Column: Live Hero & Flag Preview Card -->
-          <div class="start-preview-column">
-            <div class="preview-badge-header">HERO LIVE PREVIEW</div>
-            
-            <div class="hero-preview-stage">
-              <div class="stage-radial-light"></div>
-              <div class="preview-avatar-box">
-                <div class="preview-flag-mount">
-                  <div class="preview-flag-pole"></div>
-                  <div class="preview-flag-cloth" id="preview-flag-banner">
-                    <div class="stripe s1" id="preview-stripe-1"></div>
-                    <div class="stripe s2" id="preview-stripe-2"></div>
-                    <div class="stripe s3" id="preview-stripe-3"></div>
-                  </div>
-                </div>
-                <div class="preview-character-body">
-                  <div class="preview-cap"></div>
-                  <div class="preview-head">👓</div>
-                  <div class="preview-jacket"></div>
-                </div>
+          <!-- Country Flag Dropdown -->
+          <div class="game-input-group">
+            <label for="country-flag-select" class="game-label">
+              <span>🚩 COUNTRY FLAG (દેશનો ધ્વજ પસંદ કરો)</span>
+            </label>
+            <div class="select-flag-wrapper">
+              <select id="country-flag-select" class="game-select-input">
+                <option value="IND" selected>🇮🇳 India (Tricolor)</option>
+                <option value="USA">🇺🇸 USA (Stars & Stripes)</option>
+                <option value="GBR">🇬🇧 United Kingdom (Union Jack)</option>
+                <option value="CAN">🇨🇦 Canada (Maple Leaf)</option>
+                <option value="JPN">🇯🇵 Japan (Rising Sun)</option>
+                <option value="DEU">🇩🇪 Germany (Black-Red-Gold)</option>
+                <option value="FRA">🇫🇷 France (Tricolore)</option>
+                <option value="AUS">🇦🇺 Australia (Southern Cross)</option>
+                <option value="BRA">🇧🇷 Brazil (Verde e Amarelo)</option>
+                <option value="ZAF">🇿🇦 South Africa (Rainbow)</option>
+                <option value="ARE">🇦🇪 UAE</option>
+                <option value="ITA">🇮🇹 Italy (Tricolore)</option>
+                <option value="ESP">🇪🇸 Spain (Rojigualda)</option>
+                <option value="GLO">🏳️‍🌈 Freedom Flag (Peace)</option>
+              </select>
+              <!-- Live Mini Waving Flag Badge -->
+              <div class="selected-flag-preview-box" id="flag-preview-stripes" title="Selected Flag">
+                <div class="f-stripe" id="f-s1"></div>
+                <div class="f-stripe" id="f-s2"></div>
+                <div class="f-stripe" id="f-s3"></div>
               </div>
-              <div class="preview-hero-label" id="preview-hero-tag">🇮🇳 Aam Aadmi</div>
             </div>
-
-            <div class="preview-country-info">
-              <span class="preview-country-flag" id="preview-country-emoji">🇮🇳</span>
-              <span class="preview-country-text" id="preview-country-title">India (Tricolor)</span>
-            </div>
-
-            <!-- Mini Quick Guide -->
-            <div class="mini-objectives-box">
-              <div class="obj-title">🎯 MISSION OBJECTIVES</div>
-              <div class="obj-item"><span>🚩</span> Collect 6 hidden flags in circular road rings</div>
-              <div class="obj-item"><span>👮</span> Evade Delhi Police patrol vision cones</div>
-              <div class="obj-item"><span>🏛️</span> Gather safely at central Vrihat Samrat Yantra</div>
-            </div>
+            <div class="card-hint-text">🚩 All 6 collectible flags on map will match this nation!</div>
           </div>
-        </div>
 
-        <!-- Start Game Action Footer -->
-        <div class="start-dialog-footer">
-          <button id="btn-start-game" class="btn-start-action">
-            <span class="btn-icon">⚡</span>
-            <span class="btn-text">START MISSION (રમત શરૂ કરો)</span>
-            <span class="btn-arrow">➔</span>
+          <!-- 3. Start Game Button -->
+          <button id="btn-start-game" class="game-card-start-btn">
+            <span class="btn-glow-ring"></span>
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">START GAME (રમત શરૂ કરો)</span>
           </button>
-          <div class="start-key-hint">💡 Press <strong>ENTER</strong> or Click Start to play • Map is moving live in background!</div>
+          
+          <div class="game-card-footer-hint">
+            💡 Press <strong>ENTER</strong> or Click Start to play!
+          </div>
         </div>
       </div>
     </div>
@@ -183,17 +193,17 @@
     </div>
   </div>
 
-  <!-- Scripts in order of dependency -->
-  <script src="js/config.js"></script>
-  <script src="js/engine/camera.js"></script>
-  <script src="js/engine/input.js"></script>
-  <script src="js/map/roadNetwork.js"></script>
-  <script src="js/map/circularMapDraw.js"></script>
-  <script src="js/map/minimap.js"></script>
-  <script src="js/entities/flags.js"></script>
-  <script src="js/entities/player.js"></script>
-  <script src="js/entities/policeAI.js"></script>
-  <script src="js/ui/hud.js"></script>
-  <script src="js/main.js"></script>
+  <!-- Scripts in order of dependency (with cache-buster) -->
+  <script src="js/config.js?v=3.5"></script>
+  <script src="js/engine/camera.js?v=3.5"></script>
+  <script src="js/engine/input.js?v=3.5"></script>
+  <script src="js/map/roadNetwork.js?v=3.5"></script>
+  <script src="js/map/circularMapDraw.js?v=3.5"></script>
+  <script src="js/map/minimap.js?v=3.5"></script>
+  <script src="js/entities/flags.js?v=3.5"></script>
+  <script src="js/entities/player.js?v=3.5"></script>
+  <script src="js/entities/policeAI.js?v=3.5"></script>
+  <script src="js/ui/hud.js?v=3.5"></script>
+  <script src="js/main.js?v=3.5"></script>
 </body>
 </html>

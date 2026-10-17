@@ -37,23 +37,109 @@ window.addEventListener('DOMContentLoaded', () => {
   const hud = new window.GameHUD(config, camera, player, flagManager, policeManager);
 
   // ========================================================
-  // COUNTRY FLAGS & RANDOM NAMES DATABASE
+  // WEB AUDIO RETRO ARCADE SYNTHESIZER
+  // ========================================================
+  const AudioEngine = {
+    ctx: null,
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    },
+    playHover() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(540, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(760, this.ctx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.04);
+      } catch (e) {}
+    },
+    playSelect() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(680, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(920, this.ctx.currentTime + 0.07);
+        gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.07);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.07);
+      } catch (e) {}
+    },
+    playDeploy() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const chords = [392, 523.25, 659.25, 783.99, 1046.50];
+        chords.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.05);
+          gain.gain.setValueAtTime(0.06, this.ctx.currentTime + i * 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.05 + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + i * 0.05);
+          osc.stop(this.ctx.currentTime + i * 0.05 + 0.35);
+        });
+      } catch (e) {}
+    },
+    playCollect() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(987.77, this.ctx.currentTime);
+        osc.frequency.setValueAtTime(1318.51, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.07, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.22);
+      } catch (e) {}
+    }
+  };
+
+  // ========================================================
+  // COUNTRY FACTIONS DATABASE (With Tactical Perks)
   // ========================================================
   const COUNTRY_FLAGS = [
-    { code: 'IN', name: 'India', emoji: '🇮🇳', color: '#f97316', stripeColors: ['#ff9933', '#ffffff', '#138808'] },
-    { code: 'US', name: 'USA', emoji: '🇺🇸', color: '#3b82f6', stripeColors: ['#b22234', '#ffffff', '#3c3b6e'] },
-    { code: 'GB', name: 'United Kingdom', emoji: '🇬🇧', color: '#1d4ed8', stripeColors: ['#012169', '#ffffff', '#c8102e'] },
-    { code: 'CA', name: 'Canada', emoji: '🇨🇦', color: '#ef4444', stripeColors: ['#ff0000', '#ffffff', '#ff0000'] },
-    { code: 'JP', name: 'Japan', emoji: '🇯🇵', color: '#dc2626', stripeColors: ['#ffffff', '#bc002d', '#ffffff'] },
-    { code: 'DE', name: 'Germany', emoji: '🇩🇪', color: '#eab308', stripeColors: ['#000000', '#dd0000', '#ffce00'] },
-    { code: 'FR', name: 'France', emoji: '🇫🇷', color: '#2563eb', stripeColors: ['#0055a4', '#ffffff', '#ef4135'] },
-    { code: 'AU', name: 'Australia', emoji: '🇦🇺', color: '#0284c7', stripeColors: ['#00008b', '#ff0000', '#ffffff'] },
-    { code: 'BR', name: 'Brazil', emoji: '🇧🇷', color: '#16a34a', stripeColors: ['#009c3b', '#ffdf00', '#002776'] },
-    { code: 'ZA', name: 'South Africa', emoji: '🇿🇦', color: '#059669', stripeColors: ['#007749', '#e03c31', '#001489'] },
-    { code: 'AE', name: 'UAE', emoji: '🇦🇪', color: '#dc2626', stripeColors: ['#00732f', '#ffffff', '#000000'] },
-    { code: 'IT', name: 'Italy', emoji: '🇮🇹', color: '#16a34a', stripeColors: ['#009246', '#ffffff', '#ce2b37'] },
-    { code: 'ES', name: 'Spain', emoji: '🇪🇸', color: '#eab308', stripeColors: ['#aa151b', '#f1bf00', '#aa151b'] },
-    { code: 'UN', name: 'Peace & Freedom', emoji: '🏳️‍🌈', color: '#8b5cf6', stripeColors: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'] }
+    { code: 'IND', name: 'India', emoji: '🇮🇳', perk: '⚡ Satyagraha Aura (+Speed)', color: '#f97316', stripeColors: ['#ff9933', '#ffffff', '#138808'] },
+    { code: 'USA', name: 'USA', emoji: '🇺🇸', perk: '🦅 Eagle Eye (+Minimap Radar)', color: '#3b82f6', stripeColors: ['#b22234', '#ffffff', '#3c3b6e'] },
+    { code: 'GBR', name: 'United Kingdom', emoji: '🇬🇧', perk: '🛡️ London Shroud (+Stealth)', color: '#1d4ed8', stripeColors: ['#012169', '#ffffff', '#c8102e'] },
+    { code: 'CAN', name: 'Canada', emoji: '🇨🇦', perk: '🍁 Maple Rush (+Agility)', color: '#ef4444', stripeColors: ['#ff0000', '#ffffff', '#ff0000'] },
+    { code: 'JPN', name: 'Japan', emoji: '🇯🇵', perk: '⛩️ Shinobi Step (-Detection)', color: '#dc2626', stripeColors: ['#ffffff', '#bc002d', '#ffffff'] },
+    { code: 'DEU', name: 'Germany', emoji: '🇩🇪', perk: '⚙️ Autobahn Precision', color: '#eab308', stripeColors: ['#000000', '#dd0000', '#ffce00'] },
+    { code: 'FRA', name: 'France', emoji: '🇫🇷', perk: '⚜️ Bastille Call (+Morale)', color: '#2563eb', stripeColors: ['#0055a4', '#ffffff', '#ef4135'] },
+    { code: 'AUS', name: 'Australia', emoji: '🇦🇺', perk: '🦘 Outback Endurance', color: '#0284c7', stripeColors: ['#00008b', '#ff0000', '#ffffff'] },
+    { code: 'BRA', name: 'Brazil', emoji: '🇧🇷', perk: '⚡ Carnival Dash (+Sprint)', color: '#16a34a', stripeColors: ['#009c3b', '#ffdf00', '#002776'] },
+    { code: 'ZAF', name: 'South Africa', emoji: '🇿🇦', perk: '🌈 Rainbow Nation Unity', color: '#059669', stripeColors: ['#007749', '#e03c31', '#001489'] },
+    { code: 'ARE', name: 'UAE', emoji: '🇦🇪', perk: '🦅 Falcon Vision Glide', color: '#dc2626', stripeColors: ['#00732f', '#ffffff', '#000000'] },
+    { code: 'ITA', name: 'Italy', emoji: '🇮🇹', perk: '🍕 Vespa Drift Stamina', color: '#16a34a', stripeColors: ['#009246', '#ffffff', '#ce2b37'] },
+    { code: 'ESP', name: 'Spain', emoji: '🇪🇸', perk: '🐂 Matador Corner Dodge', color: '#eab308', stripeColors: ['#aa151b', '#f1bf00', '#aa151b'] },
+    { code: 'GLO', name: 'Global Unity', emoji: '🏳️‍🌈', perk: '🌟 Ultimate Harmony Shield', color: '#8b5cf6', stripeColors: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'] }
   ];
 
   const RANDOM_NAMES = [
@@ -67,22 +153,23 @@ window.addEventListener('DOMContentLoaded', () => {
   let cinematicAngle = 0;
   let selectedCountryFlag = COUNTRY_FLAGS[0]; // Default India 🇮🇳
 
+  // Initialize all map flags to default country immediately
+  flagManager.setCountryFlag(selectedCountryFlag);
+
   // ========================================================
-  // START MODAL & CHARACTER CUSTOMIZER DOM WIRING
+  // COMPACT GAME CARD UI DOM WIRING
   // ========================================================
   const startModal = document.getElementById('start-modal');
   const playerNameInput = document.getElementById('player-name-input');
   const btnRandomName = document.getElementById('btn-random-name');
-  const flagsContainer = document.getElementById('flags-picker-container');
+  const countryFlagSelect = document.getElementById('country-flag-select');
   const btnStartGame = document.getElementById('btn-start-game');
 
-  // Preview elements
-  const previewHeroTag = document.getElementById('preview-hero-tag');
-  const previewCountryEmoji = document.getElementById('preview-country-emoji');
-  const previewCountryTitle = document.getElementById('preview-country-title');
-  const previewStripe1 = document.getElementById('preview-stripe-1');
-  const previewStripe2 = document.getElementById('preview-stripe-2');
-  const previewStripe3 = document.getElementById('preview-stripe-3');
+  // Banner & Preview elements
+  const bannerFighterFlag = document.getElementById('banner-fighter-flag');
+  const fs1 = document.getElementById('f-s1');
+  const fs2 = document.getElementById('f-s2');
+  const fs3 = document.getElementById('f-s3');
 
   // HUD elements
   const hudTopBar = document.getElementById('hud-top-bar');
@@ -93,46 +180,33 @@ window.addEventListener('DOMContentLoaded', () => {
   const hudPlayerBadge = document.getElementById('hud-player-badge');
   const btnCustomHero = document.getElementById('btn-custom-hero');
 
-  // Render Country Flag Chips
-  if (flagsContainer) {
-    flagsContainer.innerHTML = '';
-    COUNTRY_FLAGS.forEach((flag, idx) => {
-      const chip = document.createElement('div');
-      chip.className = `flag-chip-item ${idx === 0 ? 'selected' : ''}`;
-      chip.dataset.code = flag.code;
-      chip.title = `${flag.name} (${flag.emoji})`;
-      chip.innerHTML = `
-        <span class="flag-chip-emoji">${flag.emoji}</span>
-        <span class="flag-chip-name">${flag.name}</span>
-      `;
-      chip.addEventListener('click', () => {
-        document.querySelectorAll('.flag-chip-item').forEach(c => c.classList.remove('selected'));
-        chip.classList.add('selected');
-        selectedCountryFlag = flag;
-        updateHeroPreview();
-      });
-      flagsContainer.appendChild(chip);
-    });
+  // Update Game Card Preview on Nation / Flag Change
+  function updateGameCardPreview() {
+    if (bannerFighterFlag) bannerFighterFlag.textContent = selectedCountryFlag.emoji;
+    const stripes = selectedCountryFlag.stripeColors || ['#f97316', '#ffffff', '#16a34a'];
+    if (fs1) fs1.style.background = stripes[0] || '#f97316';
+    if (fs2) fs2.style.background = stripes[1] || stripes[0] || '#ffffff';
+    if (fs3) fs3.style.background = stripes[2] || stripes[1] || stripes[0] || '#16a34a';
   }
 
-  // Update Live Preview Card
-  function updateHeroPreview() {
-    const rawName = playerNameInput ? playerNameInput.value.trim() : '';
-    const name = rawName || 'Aam Aadmi';
+  // Country Flag Dropdown Change Listener
+  if (countryFlagSelect) {
+    countryFlagSelect.addEventListener('change', () => {
+      const code = countryFlagSelect.value;
+      const found = COUNTRY_FLAGS.find(f => f.code === code) || COUNTRY_FLAGS[0];
+      selectedCountryFlag = found;
 
-    if (previewHeroTag) previewHeroTag.textContent = `${selectedCountryFlag.emoji} ${name}`;
-    if (previewCountryEmoji) previewCountryEmoji.textContent = selectedCountryFlag.emoji;
-    if (previewCountryTitle) previewCountryTitle.textContent = selectedCountryFlag.name;
+      // Instantly update all 6 world flags in the map!
+      flagManager.setCountryFlag(selectedCountryFlag);
+      player.setNameAndFlag(playerNameInput ? playerNameInput.value : '', selectedCountryFlag);
 
-    const stripes = selectedCountryFlag.stripeColors || ['#f97316', '#ffffff', '#16a34a'];
-    if (previewStripe1) previewStripe1.style.background = stripes[0] || '#f97316';
-    if (previewStripe2) previewStripe2.style.background = stripes[1] || stripes[0] || '#ffffff';
-    if (previewStripe3) previewStripe3.style.background = stripes[2] || stripes[1] || stripes[0] || '#16a34a';
+      AudioEngine.playSelect();
+      updateGameCardPreview();
+    });
   }
 
   // Name Input Listeners
   if (playerNameInput) {
-    playerNameInput.addEventListener('input', updateHeroPreview);
     playerNameInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -144,19 +218,24 @@ window.addEventListener('DOMContentLoaded', () => {
   // Random Name Dice Button
   if (btnRandomName && playerNameInput) {
     btnRandomName.addEventListener('click', () => {
+      AudioEngine.playSelect();
       const randIdx = Math.floor(Math.random() * RANDOM_NAMES.length);
       playerNameInput.value = RANDOM_NAMES[randIdx];
-      updateHeroPreview();
     });
   }
 
+  // Initial Preview
+  updateGameCardPreview();
+
   // Start Game Trigger
   function startGame() {
+    AudioEngine.playDeploy();
     const rawName = playerNameInput ? playerNameInput.value.trim() : '';
     const finalName = rawName || 'Aam Aadmi';
 
-    // Apply Identity & Flag to Player Entity
+    // Apply Identity & Flag to Player Entity AND all 6 map collection flags
     player.setNameAndFlag(finalName, selectedCountryFlag);
+    flagManager.setCountryFlag(selectedCountryFlag);
 
     // Update Top-Left HUD Pill
     if (hudPlayerFlag) hudPlayerFlag.textContent = selectedCountryFlag.emoji;
@@ -177,21 +256,23 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Smooth Camera Transition to Player
     camera.moveTo(player.x, player.y);
-    camera.setZoom(1.1);
+    camera.setZoom(1.15);
     camera.setFollow(player);
 
     hud.logAction(`✊ Hero ${player.name} deployed representing ${selectedCountryFlag.name} ${selectedCountryFlag.emoji}!`);
-    hud.logAction('🚩 Mission Started: Move along circular roads to find 6 flags!');
-    hud.logAction('⚠️ Watch out for patrolling police! Move strictly on roads to reach Center Jantar Mantar.');
+    hud.logAction(`🚩 MISSION: Find and plant all 6 ${selectedCountryFlag.name} flags at Center Samrat Yantra!`);
+    hud.logAction('⚠️ Watch out for patrolling police! Move strictly on roads.');
   }
 
   if (btnStartGame) {
+    btnStartGame.addEventListener('mouseenter', () => AudioEngine.playHover());
     btnStartGame.addEventListener('click', startGame);
   }
 
   // Reopen Customization Modal anytime via HUD badge or Hero button
   function openCustomizer() {
     if (startModal) {
+      AudioEngine.playSelect();
       startModal.classList.add('active');
       if (playerNameInput) playerNameInput.focus();
     }
@@ -208,7 +289,7 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   // Initial Preview Call
-  updateHeroPreview();
+  updateGameCardPreview();
 
   // ========================================================
   // MINIMAP & CANVAS INTERACTION
@@ -239,9 +320,10 @@ window.addEventListener('DOMContentLoaded', () => {
   // Flag Collect Callback
   const onFlagCollect = (flag) => {
     if (!isGameStarted) return;
-    hud.logAction(`🚩 Picked up ${flag.name}! (${flagManager.getCollectedCount()}/${flagManager.getTotalCount()})`);
+    AudioEngine.playCollect();
+    hud.logAction(`🚩 Secured ${flag.name}! (${flagManager.getCollectedCount()}/${flagManager.getTotalCount()})`);
     if (flagManager.isAllCollected()) {
-      hud.logAction(`🌟 ALL FLAGS COLLECTED! Head to Center Jantar Mantar Samrat Yantra!`);
+      hud.logAction(`🌟 ALL 6 ${selectedCountryFlag.name} FLAGS SECURED! Head to Center Jantar Mantar!`);
     }
   };
 
