@@ -13,7 +13,7 @@ class Camera2D {
 
     this.zoom = 1.0;
     this.targetZoom = 1.0;
-    this.minZoom = 0.35; // See entire Delhi CP + Jantar Mantar
+    this.minZoom = 0.22; // Wide comfortable view of circular city
     this.maxZoom = 2.4;  // Close-up detail of sundial scales
 
     this.followTarget = null;

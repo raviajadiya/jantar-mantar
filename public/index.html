@@ -2,17 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0f172a">
   <title>Jantar Mantar 2.0 - Circular Road Stealth Protest Game</title>
   <meta name="description" content="Clean 2D view: Circular road maze with central Jantar Mantar, flag collections, and police stealth AI.">
-  <link rel="stylesheet" href="css/main.css?v=5.0">
+  <link rel="stylesheet" href="css/main.css?v=5.6">
 </head>
 <body>
   <div id="game-container">
     <!-- Main 2D Canvas Viewport -->
     <canvas id="map-canvas"></canvas>
 
-    <!-- 1. CLEAN FLAGS COUNT BOARD (Top-Left) -->
+    <!-- 1. TOP-LEFT HELP & RADAR MAP BUTTON -->
+    <div class="hud-top-left-zone hud-element hud-hidden" id="hud-help-bar">
+      <button id="btn-help-toggle" class="hud-circle-btn" title="Help & Radar Map (નકશો અને મદદ)">
+        <span class="btn-help-icon">❓</span>
+        <span class="btn-help-text">HELP</span>
+      </button>
+    </div>
+
+    <!-- 2. TOP-CENTER FLAGS COUNT BOARD -->
     <div class="clean-hud-top hud-element hud-hidden" id="hud-top-bar">
       <div class="flag-counter-board">
         <div class="player-profile-badge" id="hud-player-badge" title="Click to customize name & flag">
@@ -22,32 +34,51 @@
         <div class="hud-divider"></div>
         <div class="flag-icon">🚩</div>
         <div class="flag-text-group">
-          <div class="flag-label">FLAGS COLLECTED</div>
+          <div class="flag-label">FLAGS</div>
           <div class="flag-count-number"><span id="flags-collected-count">0 / 6</span></div>
         </div>
         <div class="hud-divider"></div>
-        <div class="level-indicator-badge" id="hud-level-badge">⭐ LEVEL 1</div>
+        <div class="level-indicator-badge" id="hud-level-badge">⭐ L1</div>
         <div id="threat-status-badge" class="threat-badge stealth">
           🟢 SAFE
         </div>
       </div>
     </div>
 
-    <!-- 2. MAP CONTROLS & ZOOM WIDGET (Top-Right) -->
+    <!-- 3. TOP-RIGHT ZOOM BUTTON & DROPDOWN PANEL -->
     <div class="clean-zoom-widget hud-element hud-hidden" id="hud-zoom-bar">
-      <button id="btn-custom-hero" class="zoom-btn" title="Customize Hero Name & Flag">👤</button>
-      <button id="btn-zoom-in" class="zoom-btn" title="Zoom In (+)">➕</button>
-      <button id="btn-reset-cam" class="zoom-btn" title="Reset View (Center)">⊙</button>
-      <button id="btn-zoom-out" class="zoom-btn" title="Zoom Out (−)">➖</button>
+      <button id="btn-zoom-toggle" class="hud-circle-btn zoom-toggle-btn" title="Zoom Controls (ઝૂમ)">
+        <span class="btn-zoom-main-icon">🔍</span>
+      </button>
+      <div id="zoom-dropdown-menu" class="zoom-dropdown-panel hidden">
+        <button id="btn-zoom-in" class="zoom-dropdown-item" title="Zoom In (+)">➕ Zoom In</button>
+        <button id="btn-zoom-out" class="zoom-dropdown-item" title="Zoom Out (−)">➖ Zoom Out</button>
+        <button id="btn-reset-cam" class="zoom-dropdown-item" title="Reset View (Center)">⊙ Reset View</button>
+        <button id="btn-custom-hero" class="zoom-dropdown-item" title="Customize Hero">👤 Hero</button>
+      </div>
     </div>
 
-    <!-- 3. RADAR MINIMAP (Bottom-Right) -->
-    <div class="minimap-wrapper hud-element hud-hidden" id="hud-minimap-bar">
-      <div class="minimap-header">
-        <span>CIRCULAR DILLI RADAR</span>
-        <span class="star-dest">★ Jantar Mantar</span>
+    <!-- 4. ON-SCREEN MOBILE CONTROLS (Virtual Joystick & Sprint Button) -->
+    <div id="mobile-controls-container" class="hud-element hud-hidden">
+      <!-- Virtual Thumbstick Joystick (Bottom-Left) -->
+      <div id="mobile-joystick-zone">
+        <div id="joystick-base">
+          <div id="joystick-ring"></div>
+          <div id="joystick-knob">
+            <span class="knob-icon">🧭</span>
+          </div>
+        </div>
+        <div class="joystick-label">MOVE / સ્ટીયરીંગ</div>
       </div>
-      <canvas id="minimap-canvas" width="200" height="200"></canvas>
+
+      <!-- Action Buttons (Bottom-Right) -->
+      <div id="mobile-action-buttons">
+        <button id="btn-mobile-sprint" class="mobile-action-btn" title="Hold or Tap to Sprint">
+          <span class="btn-sprint-glow"></span>
+          <span class="btn-sprint-icon">⚡</span>
+          <span class="btn-sprint-text">RUN</span>
+        </button>
+      </div>
     </div>
 
 
@@ -201,21 +232,75 @@
         </div>
       </div>
     </div>
+
+    <!-- HELP & RADAR MAP MODAL (Toggled by Left Help Button) -->
+    <div id="help-map-modal" class="modal-backdrop help-modal-backdrop">
+      <div class="landmark-card-modal help-map-card">
+        <div class="help-map-header">
+          <div class="help-title-group">
+            <span class="help-header-icon">🗺️</span>
+            <div>
+              <h3 class="help-modal-heading">RADAR MAP & HELP</h3>
+              <div class="help-modal-sub">નકશો અને ગેમ માર્ગદર્શન</div>
+            </div>
+          </div>
+          <button id="btn-close-help" class="modal-close-btn" title="Close (બંધ કરો)">✕</button>
+        </div>
+
+        <div class="help-map-body">
+          <!-- The Interactive Live Radar Minimap Canvas -->
+          <div class="help-minimap-container">
+            <canvas id="minimap-canvas" width="220" height="220"></canvas>
+            <div class="minimap-hint-label">★ Center: Jantar Mantar (Gandhi Cap)</div>
+          </div>
+
+          <!-- Guide / Legend -->
+          <div class="help-guide-section">
+            <div class="guide-legend-row">
+              <span class="legend-chip you">🟢 You</span>
+              <span class="legend-chip police">🚨 Police</span>
+              <span class="legend-chip flag">🚩 Flags</span>
+              <span class="legend-chip cap">🧢 Gandhi Cap</span>
+            </div>
+            <div class="guide-rules-list">
+              <div class="guide-rule-item">
+                <span class="rule-icon">1️⃣</span>
+                <span>બધા <strong>🚩 ફ્લેગ્સ</strong> ભેગા કરો અને પોલીસની નજરથી બચો.</span>
+              </div>
+              <div class="guide-rule-item">
+                <span class="rule-icon">2️⃣</span>
+                <span>બધા ફ્લેગ્સ આવ્યા પછી સેન્ટરમાં <strong>🧢 ગાંધી ટોપી</strong> લઈ લેવલ પાસ કરો!</span>
+              </div>
+              <div class="guide-rule-item">
+                <span class="rule-icon">3️⃣</span>
+                <span>દોડવા માટે <strong>⚡ RUN</strong> બટન દબાવો, અને સ્ટીયરીંગ માટે <strong>🧭 જોયસ્ટિક</strong> વાપરો.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer" style="justify-content:center; padding-top: 10px;">
+          <button id="btn-resume-game" class="game-card-start-btn" style="padding: 10px 24px; font-size: 1rem; width: auto; margin: 0;">
+            ✓ GOT IT (ચાલુ રાખો)
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Scripts in order of dependency (with cache-buster) -->
-  <script src="js/config.js?v=5.3"></script>
-  <script src="js/map/mapThemes.js?v=5.3"></script>
-  <script src="js/engine/camera.js?v=5.3"></script>
-  <script src="js/engine/input.js?v=5.3"></script>
-  <script src="js/map/roadNetwork.js?v=5.3"></script>
-  <script src="js/map/circularMapDraw.js?v=5.3"></script>
-  <script src="js/map/minimap.js?v=5.3"></script>
-  <script src="js/entities/flags.js?v=5.3"></script>
-  <script src="js/entities/player.js?v=5.3"></script>
-  <script src="js/entities/policeAI.js?v=5.3"></script>
-  <script src="js/ui/celebrationBlast.js?v=5.3"></script>
-  <script src="js/ui/hud.js?v=5.3"></script>
-  <script src="js/main.js?v=5.3"></script>
+  <script src="js/config.js?v=5.6"></script>
+  <script src="js/map/mapThemes.js?v=5.6"></script>
+  <script src="js/engine/camera.js?v=5.6"></script>
+  <script src="js/engine/input.js?v=5.6"></script>
+  <script src="js/map/roadNetwork.js?v=5.6"></script>
+  <script src="js/map/circularMapDraw.js?v=5.6"></script>
+  <script src="js/map/minimap.js?v=5.6"></script>
+  <script src="js/entities/flags.js?v=5.6"></script>
+  <script src="js/entities/player.js?v=5.6"></script>
+  <script src="js/entities/policeAI.js?v=5.6"></script>
+  <script src="js/ui/celebrationBlast.js?v=5.6"></script>
+  <script src="js/ui/hud.js?v=5.6"></script>
+  <script src="js/main.js?v=5.6"></script>
 </body>
 </html>

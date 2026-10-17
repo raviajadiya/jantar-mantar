@@ -23,7 +23,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Center position for cinematic overview
   const centerPos = config.circularLayout.center; // (1800, 1800)
   camera.moveTo(centerPos.x, centerPos.y, true);
-  camera.setZoom(0.85);
+  camera.setZoom(window.innerWidth <= 768 ? 0.36 : 0.85);
 
   // 3. Spawn Protester Player on the Last (Outermost) Ring (Ring 4, radius 1400)
   const outerSpokeNodes = roadNetwork.getOuterRingSpokeNodes();
@@ -315,13 +315,19 @@ window.addEventListener('DOMContentLoaded', () => {
   const fs3 = document.getElementById('f-s3');
 
   // HUD elements
+  const hudHelpBar = document.getElementById('hud-help-bar');
   const hudTopBar = document.getElementById('hud-top-bar');
   const hudZoomBar = document.getElementById('hud-zoom-bar');
-  const hudMinimapBar = document.getElementById('hud-minimap-bar');
   const hudPlayerFlag = document.getElementById('hud-player-flag');
   const hudPlayerName = document.getElementById('hud-player-name');
   const hudPlayerBadge = document.getElementById('hud-player-badge');
   const btnCustomHero = document.getElementById('btn-custom-hero');
+  const helpMapModal = document.getElementById('help-map-modal');
+  const btnHelpToggle = document.getElementById('btn-help-toggle');
+  const btnCloseHelp = document.getElementById('btn-close-help');
+  const btnResumeGame = document.getElementById('btn-resume-game');
+  const btnZoomToggle = document.getElementById('btn-zoom-toggle');
+  const zoomDropdownMenu = document.getElementById('zoom-dropdown-menu');
 
   // Update Game Card Preview on Nation / Flag Change
   function updateGameCardPreview() {
@@ -406,19 +412,80 @@ window.addEventListener('DOMContentLoaded', () => {
     // Reset police officers to distant patrol stations with 4s safe grace immunity
     policeManager.resetToPatrol(spawnNode);
 
-    // Smoothly Reveal HUD & Minimap
+    // Smoothly Reveal HUD & Mobile Controls
+    if (hudHelpBar) hudHelpBar.classList.remove('hud-hidden');
     if (hudTopBar) hudTopBar.classList.remove('hud-hidden');
     if (hudZoomBar) hudZoomBar.classList.remove('hud-hidden');
-    if (hudMinimapBar) hudMinimapBar.classList.remove('hud-hidden');
 
-    // Smooth Camera Transition to Player on the Last Ring
+    const mobileControls = document.getElementById('mobile-controls-container');
+    if (mobileControls) {
+      if (window.innerWidth <= 768) {
+        mobileControls.style.display = 'none';
+      } else {
+        mobileControls.classList.remove('hud-hidden');
+      }
+    }
+
+    // Smooth Camera Transition to Player on the Last Ring (comfortably zoomed out on mobile)
     camera.moveTo(player.x, player.y);
-    camera.setZoom(1.15);
+    camera.setZoom(window.innerWidth <= 768 ? 0.36 : 1.10);
     camera.setFollow(player);
 
     hud.logAction(`✊ Hero ${player.name} deployed on the Perimeter Ring representing ${selectedCountryFlag.name} ${selectedCountryFlag.emoji}!`);
-    hud.logAction(`🚩 MISSION: Find and plant all 6 ${selectedCountryFlag.name} flags at Vrihat Samrat Yantra Sundial!`);
-    hud.logAction('⚠️ Watch out for patrolling police! Move strictly on roads.');
+    hud.logAction(`🚩 MISSION: Find and secure all flags to unlock the Center Gandhi Cap!`);
+    hud.logAction('💡 TIP: Tap any road to walk or double-tap to sprint!');
+  }
+
+  // Help & Radar Map Modal Handlers
+  function toggleHelpModal() {
+    if (!helpMapModal) return;
+    AudioEngine.playSelect();
+    helpMapModal.classList.toggle('active');
+  }
+
+  function closeHelpModal() {
+    if (!helpMapModal) return;
+    helpMapModal.classList.remove('active');
+  }
+
+  if (btnHelpToggle) {
+    btnHelpToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleHelpModal();
+    });
+  }
+  if (btnCloseHelp) btnCloseHelp.addEventListener('click', closeHelpModal);
+  if (btnResumeGame) btnResumeGame.addEventListener('click', closeHelpModal);
+  if (helpMapModal) {
+    helpMapModal.addEventListener('click', (e) => {
+      if (e.target === helpMapModal) closeHelpModal();
+    });
+  }
+
+  // Zoom Button Toggle & Click-Outside to Hide
+  if (btnZoomToggle && zoomDropdownMenu) {
+    btnZoomToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      AudioEngine.playSelect();
+      zoomDropdownMenu.classList.toggle('hidden');
+    });
+
+    // Close zoom dropdown when clicking or touching anywhere outside
+    window.addEventListener('click', (e) => {
+      if (!zoomDropdownMenu.classList.contains('hidden')) {
+        if (!zoomDropdownMenu.contains(e.target) && e.target !== btnZoomToggle && !btnZoomToggle.contains(e.target)) {
+          zoomDropdownMenu.classList.add('hidden');
+        }
+      }
+    });
+
+    window.addEventListener('touchstart', (e) => {
+      if (!zoomDropdownMenu.classList.contains('hidden')) {
+        if (!zoomDropdownMenu.contains(e.target) && e.target !== btnZoomToggle && !btnZoomToggle.contains(e.target)) {
+          zoomDropdownMenu.classList.add('hidden');
+        }
+      }
+    }, { passive: true });
   }
 
   if (btnStartGame) {
@@ -546,7 +613,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Smoothly focus camera on player on the new ring
     camera.moveTo(player.x, player.y);
-    camera.setZoom(1.05);
+    camera.setZoom(window.innerWidth <= 768 ? 0.36 : 1.05);
     camera.setFollow(player);
 
     // Update HUD Level Badge
@@ -581,14 +648,14 @@ window.addEventListener('DOMContentLoaded', () => {
       const camX = centerPos.x + Math.cos(cinematicAngle) * radius;
       const camY = centerPos.y + Math.sin(cinematicAngle * 0.8) * (radius * 0.65);
       camera.moveTo(camX, camY);
-      camera.setZoom(0.88);
+      camera.setZoom(window.innerWidth <= 768 ? 0.36 : 0.88);
 
       // AI updates in background for live real-time simulation (game not started: never detect or chase player)
       policeManager.update(deltaTime, player, null, false);
     } else {
       input.setGameMode(hud.gameMode);
 
-      // Manual Keyboard (WASD / Arrows) Movement
+      // Manual Keyboard (WASD / Arrows) Movement & Mobile Virtual Joystick
       let kx = 0;
       let ky = 0;
       if (input.keys['w'] || input.keys['arrowup']) ky -= 1;
@@ -596,12 +663,19 @@ window.addEventListener('DOMContentLoaded', () => {
       if (input.keys['a'] || input.keys['arrowleft']) kx -= 1;
       if (input.keys['d'] || input.keys['arrowright']) kx += 1;
 
+      if (input.joystick && input.joystick.active) {
+        kx += input.joystick.x;
+        ky += input.joystick.y;
+      }
+
+      const isSprinting = input.mouse.rightDown || (input.isTouchSprinting === true);
+
       if (hud.gameMode === 'walk') {
         if (kx !== 0 || ky !== 0) {
           player.manualMovingThisFrame = true;
-          player.manualMove(kx, ky, deltaTime, input.mouse.rightDown);
+          player.manualMove(kx, ky, deltaTime, isSprinting);
         }
-        player.update(deltaTime, input.mouse.rightDown);
+        player.update(deltaTime, isSprinting);
       } else {
         input.update(deltaTime);
       }

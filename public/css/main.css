@@ -57,28 +57,86 @@ html, body {
 /* ========================================================
    CLEAN MINIMAL HUD: Flag Counter Board & Zoom Controls
    ======================================================== */
+/* ========================================================
+   TOP NAVIGATION & STATUS BAR (Help, Centered Flags, Zoom)
+   ======================================================== */
+/* 1. Top-Left Help & Map Trigger */
+.hud-top-left-zone {
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  z-index: 55;
+  pointer-events: auto;
+}
+
+.hud-circle-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.92);
+  border: 2px solid #f59e0b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #f8fafc;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hud-circle-btn:hover {
+  transform: scale(1.06);
+  border-color: #fbbf24;
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.5);
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.hud-circle-btn:active {
+  transform: scale(0.94);
+}
+
+.btn-help-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.btn-help-text {
+  font-size: 0.52rem;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  color: #fde047;
+  margin-top: 1px;
+}
+
+/* 2. Top-Center Flags Count Board */
 .clean-hud-top {
   position: absolute;
-  top: 18px;
-  left: 20px;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 50;
   pointer-events: auto;
+  white-space: nowrap;
 }
 
 .flag-counter-board {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: rgba(15, 23, 42, 0.88);
-  border: 1.5px solid #f59e0b;
-  border-radius: 16px;
-  padding: 10px 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.9);
+  border: 2px solid #f59e0b;
+  border-radius: 20px;
+  padding: 8px 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(245, 158, 11, 0.2);
   backdrop-filter: blur(10px);
 }
 
 .flag-icon {
-  font-size: 1.8rem;
+  font-size: 1.7rem;
   filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.5));
   animation: flagWave 1.8s ease-in-out infinite alternate;
 }
@@ -94,7 +152,7 @@ html, body {
 }
 
 .flag-label {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 1px;
   color: #fed7aa;
@@ -102,49 +160,85 @@ html, body {
 }
 
 .flag-count-number {
-  font-size: 1.5rem;
+  font-size: 1.45rem;
   font-weight: 900;
   color: #facc15;
   font-family: var(--primary-font);
   line-height: 1.1;
 }
 
-/* Floating Zoom Widget */
+/* 3. Top-Right Zoom Widget & Dropdown Menu */
 .clean-zoom-widget {
   position: absolute;
-  top: 18px;
-  right: 20px;
+  top: 16px;
+  right: 18px;
+  z-index: 55;
+  pointer-events: auto;
+}
+
+.zoom-toggle-btn {
+  /* Inherits from .hud-circle-btn */
+}
+
+.btn-zoom-main-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.zoom-dropdown-panel {
+  position: absolute;
+  top: 52px;
+  right: 0;
+  background: rgba(15, 23, 42, 0.96);
+  border: 2px solid #f59e0b;
+  border-radius: 14px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  z-index: 50;
+  gap: 5px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85), 0 0 18px rgba(245, 158, 11, 0.25);
+  backdrop-filter: blur(12px);
+  min-width: 145px;
+  animation: zoomPopIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 60;
 }
 
-.zoom-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.88);
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  font-size: 1.2rem;
+@keyframes zoomPopIn {
+  from { opacity: 0; transform: scale(0.9) translateY(-6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.zoom-dropdown-panel.hidden {
+  display: none !important;
+}
+
+.zoom-dropdown-item {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(30, 41, 59, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #f8fafc;
+  font-family: var(--primary-font);
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(8px);
-  transition: all 0.2s ease;
+  transition: all 0.18s;
+  white-space: nowrap;
 }
 
-.zoom-btn:hover {
-  background: #b45309;
+.zoom-dropdown-item:hover {
+  background: rgba(245, 158, 11, 0.35);
   border-color: #f59e0b;
-  transform: scale(1.06);
+  color: #fde047;
+  transform: translateX(-2px);
 }
 
-.zoom-btn:active {
-  transform: scale(0.96);
+.zoom-dropdown-item:active {
+  transform: scale(0.97);
 }
 
 
@@ -186,40 +280,169 @@ html, body {
 
 
 
-/* Bottom Right DILLI MAP Minimap Box (Clean Floating Radar) */
-.minimap-wrapper {
-  position: absolute;
-  bottom: 18px;
-  right: 18px;
-  background: var(--bg-dark);
-  border: 2px solid #f59e0b;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
-  z-index: 20;
+/* ========================================================
+   HELP & RADAR MAP MODAL (Toggled via Top-Left Help Button)
+   ======================================================== */
+.help-modal-backdrop {
+  z-index: 150 !important;
 }
 
-.minimap-header {
+.help-map-card {
+  width: 440px;
+  max-width: 92vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: radial-gradient(circle at 50% 10%, #1e293b 0%, #0f172a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 25px rgba(245, 158, 11, 0.25);
+  animation: helpPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes helpPopIn {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.help-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1.5px solid rgba(245, 158, 11, 0.3);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+
+.help-title-group {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background: #1e293b;
-  padding: 4px 10px;
-  font-size: 0.78rem;
-  font-weight: 800;
-  color: #fef08a;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 10px;
 }
 
-.star-dest {
-  color: var(--accent-gold);
+.help-header-icon {
+  font-size: 1.6rem;
+}
+
+.help-modal-heading {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #fde047;
+  letter-spacing: 0.8px;
+  margin: 0;
+}
+
+.help-modal-sub {
   font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #f8fafc;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+  background: #ef4444;
+  border-color: #f87171;
+  transform: scale(1.08);
+}
+
+.help-map-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.help-minimap-container {
+  background: #000000;
+  border: 2px solid #f59e0b;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.65);
 }
 
 #minimap-canvas {
   display: block;
-  cursor: pointer;
+  width: 220px;
+  height: 220px;
   background: #f5efe3;
+  cursor: crosshair;
+}
+
+.minimap-hint-label {
+  background: #1e293b;
+  color: #fde047;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 4px 8px;
+  width: 100%;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.help-guide-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guide-legend-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.legend-chip {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+}
+
+.guide-rules-list {
+  background: rgba(30, 41, 59, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #cbd5e1;
+}
+
+.guide-rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.guide-rule-item strong {
+  color: #fde047;
 }
 
 
@@ -825,5 +1048,335 @@ html, body {
   font-size: 0.72rem;
   color: #94a3b8;
   text-align: center;
+}
+
+/* ========================================================
+   ON-SCREEN MOBILE VIRTUAL JOYSTICK & TOUCH CONTROLS
+   ======================================================== */
+#mobile-controls-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 16px 20px;
+  padding-bottom: max(18px, env(safe-area-inset-bottom, 18px));
+  pointer-events: none;
+  z-index: 60;
+}
+
+#mobile-joystick-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+#joystick-base {
+  position: relative;
+  width: 122px;
+  height: 122px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(30, 41, 59, 0.78) 0%, rgba(15, 23, 42, 0.92) 100%);
+  border: 2.5px solid rgba(245, 158, 11, 0.65);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.65), inset 0 0 18px rgba(245, 158, 11, 0.2);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#joystick-ring {
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(254, 215, 170, 0.45);
+  pointer-events: none;
+}
+
+#joystick-knob {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fbbf24 0%, #ea580c 80%, #9a3412 100%);
+  box-shadow: 0 6px 20px rgba(234, 88, 12, 0.8), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.knob-icon {
+  font-size: 1.3rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+.joystick-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #fef08a;
+  letter-spacing: 0.8px;
+  margin-top: 6px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+#mobile-action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.mobile-action-btn {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  border: 2.5px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ffffff;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.mobile-action-btn:active,
+.mobile-action-btn.active {
+  transform: scale(0.92);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.95), inset 0 0 12px rgba(255, 255, 255, 0.5);
+  border-color: #fde047;
+}
+
+.btn-sprint-icon {
+  font-size: 1.45rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.btn-sprint-text {
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+/* ========================================================
+   RESPONSIVE MOBILE & TABLET LAYOUTS
+   ======================================================== */
+@media (max-width: 768px) {
+  /* Prevent scrolling rubber-band and multi-touch gestures on game area */
+  #map-canvas {
+    touch-action: none;
+  }
+
+  /* 1. Left Help Button */
+  .hud-top-left-zone {
+    top: 8px;
+    left: 8px;
+  }
+  .hud-circle-btn {
+    width: 38px;
+    height: 38px;
+  }
+  .btn-help-icon {
+    font-size: 1.05rem;
+  }
+  .btn-help-text {
+    display: none;
+  }
+
+/* ========================================================
+   RESPONSIVE MOBILE & TABLET LAYOUTS
+   ======================================================== */
+@media (max-width: 768px) {
+  /* Prevent scrolling rubber-band and multi-touch gestures on game area */
+  #map-canvas {
+    touch-action: none;
+  }
+
+  /* 1. COMPLETELY REMOVE BOTTOM ON-SCREEN JOYSTICK & SPRINT BUTTON ON MOBILE */
+  #mobile-controls-container {
+    display: none !important;
+  }
+
+  /* 2. Top-Left: Help Icon Button Only */
+  .hud-top-left-zone {
+    top: 10px;
+    left: 10px;
+  }
+  .hud-circle-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+  .btn-help-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+  .btn-help-text {
+    display: none !important;
+  }
+
+  /* 3. Top-Center: Flag Icon & Count Only (e.g. 🚩 0/6) */
+  .clean-hud-top {
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .flag-counter-board {
+    padding: 6px 14px;
+    gap: 6px;
+    border-radius: 20px;
+    border: 1.5px solid #f59e0b;
+    background: rgba(15, 23, 42, 0.94);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  }
+  .flag-icon {
+    font-size: 1.15rem;
+    animation: none;
+  }
+  .flag-count-number {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #facc15;
+    line-height: 1;
+  }
+  .flag-text-group {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  /* REMOVE EVERYTHING ELSE IN TOP APP BAR ON MOBILE */
+  .player-profile-badge,
+  .hud-divider,
+  .flag-label,
+  .level-indicator-badge,
+  #threat-status-badge {
+    display: none !important;
+  }
+
+  /* 4. Top-Right: Zoom Icon Button */
+  .clean-zoom-widget {
+    top: 10px;
+    right: 10px;
+  }
+  .zoom-toggle-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+  .btn-zoom-main-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+  .zoom-dropdown-panel {
+    top: 48px;
+    right: 0;
+    min-width: 140px;
+    padding: 5px;
+    gap: 4px;
+  }
+  .zoom-dropdown-item {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  /* 5. Help & Radar Map Modal on Mobile */
+  .help-map-card {
+    padding: 14px 16px;
+  }
+  #minimap-canvas {
+    width: 200px !important;
+    height: 200px !important;
+  }
+
+  /* Responsive Dialog Cards (Fully Scrollable on Small Screens) */
+  .game-card-dialog {
+    max-width: 95vw;
+    width: 95vw;
+    max-height: 92vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 16px;
+  }
+  .game-card-banner {
+    padding: 12px 14px 10px 14px;
+    gap: 6px;
+  }
+  .banner-versus-stage {
+    gap: 12px;
+    margin: 2px 0;
+  }
+  .fighter-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 1.35rem;
+  }
+  .game-card-title {
+    font-size: 1.35rem;
+    letter-spacing: 1px;
+  }
+  .game-card-body {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+  .game-card-start-btn {
+    padding: 12px 16px;
+    font-size: 1.05rem;
+  }
+
+  /* Modals */
+  .landmark-card-modal {
+    max-width: 92vw;
+    width: 92vw;
+    max-height: 88vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hud-top-left-zone {
+    top: 8px;
+    left: 8px;
+  }
+  .clean-hud-top {
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .clean-zoom-widget {
+    top: 8px;
+    right: 8px;
+  }
+  .hud-circle-btn,
+  .zoom-toggle-btn {
+    width: 38px;
+    height: 38px;
+  }
+  .flag-counter-board {
+    padding: 5px 12px;
+  }
 }
 

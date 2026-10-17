@@ -44,7 +44,7 @@ class GameHUD {
     if (this.resetCamBtn) {
       this.resetCamBtn.addEventListener('click', () => {
         this.camera.moveTo(this.player.x, this.player.y);
-        this.camera.setZoom(1.0);
+        this.camera.setZoom(window.innerWidth <= 768 ? 0.36 : 1.0);
       });
     }
 

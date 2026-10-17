@@ -5,8 +5,8 @@ class ProtesterPlayer {
     this.y = startY;
     this.roadNetwork = roadNetwork;
 
-    this.speed = 190; // Walking speed
-    this.runSpeed = 310; // Sprint speed
+    this.speed = 220; // Crisp responsive speed
+    this.runSpeed = 330; // Sprint speed
     this.angle = 0;
     this.animTime = 0;
     this.isMoving = false;
