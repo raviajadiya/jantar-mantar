@@ -16,8 +16,28 @@ class ProtesterPlayer {
     this.path = [];
     this.currentWaypointIndex = 0;
 
-    // Speech / Role Label
-    this.speechText = "Aam Aadmi";
+    // Player Identity & Selected Country Flag
+    this.name = "Aam Aadmi";
+    this.countryFlag = {
+      code: 'IN',
+      name: 'India',
+      emoji: '🇮🇳',
+      color: '#f97316',
+      stripeColors: ['#ff9933', '#ffffff', '#138808']
+    };
+    this.speechText = "🇮🇳 Aam Aadmi";
+  }
+
+  // Update Player Profile & Flag Choice
+  setNameAndFlag(name, flag) {
+    if (name && typeof name === 'string' && name.trim()) {
+      this.name = name.trim();
+    }
+    if (flag && flag.emoji) {
+      this.countryFlag = flag;
+    }
+    const emoji = this.countryFlag ? this.countryFlag.emoji : '🚩';
+    this.speechText = `${emoji} ${this.name}`;
   }
 
   // Set destination: Computes shortest path along road network
@@ -194,49 +214,79 @@ class ProtesterPlayer {
     ctx.ellipse(0, -19, 7.5, 3.5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Protest Stick / Flag
+    // Protest Stick / Flagpole
     ctx.strokeStyle = '#92400e';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.2;
     ctx.beginPath();
     ctx.moveTo(9, -8);
-    ctx.lineTo(9, 12);
+    ctx.lineTo(9, 14);
     ctx.stroke();
 
-    // Red Flag Banner
-    ctx.fillStyle = '#dc2626';
+    // Dynamic Country Flag Banner (with waving physics)
+    const flagWave = Math.sin(this.animTime * (this.isMoving ? 14 : 7)) * 2.5;
+    const flagW = 20;
+    const flagH = 14;
+    const stripeColors = (this.countryFlag && this.countryFlag.stripeColors && this.countryFlag.stripeColors.length > 0)
+      ? this.countryFlag.stripeColors
+      : ['#f97316', '#ffffff', '#16a34a'];
+
+    const stripeH = flagH / stripeColors.length;
+    for (let s = 0; s < stripeColors.length; s++) {
+      ctx.fillStyle = stripeColors[s];
+      ctx.beginPath();
+      const topY = -22 + s * stripeH;
+      const botY = topY + stripeH;
+      ctx.moveTo(9, topY);
+      ctx.lineTo(9 + flagW + flagWave, topY + flagWave * 0.4);
+      ctx.lineTo(9 + flagW + flagWave, botY + flagWave * 0.4);
+      ctx.lineTo(9, botY);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Flag crisp outline
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.lineWidth = 0.8;
     ctx.beginPath();
-    ctx.moveTo(9, -8);
-    ctx.lineTo(24, -14);
-    ctx.lineTo(9, -20);
+    ctx.moveTo(9, -22);
+    ctx.lineTo(9 + flagW + flagWave, -22 + flagWave * 0.4);
+    ctx.lineTo(9 + flagW + flagWave, -22 + flagH + flagWave * 0.4);
+    ctx.lineTo(9, -22 + flagH);
     ctx.closePath();
-    ctx.fill();
+    ctx.stroke();
 
     ctx.restore();
 
-    // Role Label Bubble
-    this.drawLabel(ctx, this.x, this.y - 34, this.speechText);
+    // Role / Player Identity Bubble
+    this.drawLabel(ctx, this.x, this.y - 36, this.speechText);
   }
 
   drawLabel(ctx, x, y, text) {
     ctx.save();
-    ctx.font = 'bold 9.5px "Segoe UI", sans-serif';
+    ctx.font = 'bold 10px "Outfit", "Segoe UI", sans-serif';
     const tw = ctx.measureText(text).width;
-    const bw = tw + 16;
-    const bh = 18;
+    const bw = tw + 20;
+    const bh = 22;
 
-    ctx.fillStyle = '#15803d';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1;
+    const badgeBorder = (this.countryFlag && this.countryFlag.color) || '#f59e0b';
+
+    // Dark glassmorphic capsule
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+    ctx.strokeStyle = badgeBorder;
+    ctx.lineWidth = 1.6;
     ctx.beginPath();
-    ctx.roundRect(x - bw / 2, y - bh / 2, bw, bh, 4);
+    ctx.roundRect(x - bw / 2, y - bh / 2, bw, bh, 6);
     ctx.fill();
     ctx.stroke();
 
+    // Text with emoji
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
-    ctx.fillText(text, x, y + 3.5);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
 
-    ctx.fillStyle = '#f97316';
+    // Pointer notch
+    ctx.fillStyle = badgeBorder;
     ctx.beginPath();
     ctx.moveTo(x, y + bh / 2 + 5);
     ctx.lineTo(x - 4, y + bh / 2);

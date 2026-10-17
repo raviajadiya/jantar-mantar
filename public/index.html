@@ -13,8 +13,13 @@
     <canvas id="map-canvas"></canvas>
 
     <!-- 1. CLEAN FLAGS COUNT BOARD (Top-Left) -->
-    <div class="clean-hud-top">
+    <div class="clean-hud-top hud-element hud-hidden" id="hud-top-bar">
       <div class="flag-counter-board">
+        <div class="player-profile-badge" id="hud-player-badge" title="Click to customize name & flag">
+          <span class="player-flag-emoji" id="hud-player-flag">🇮🇳</span>
+          <span class="player-name-text" id="hud-player-name">Aam Aadmi</span>
+        </div>
+        <div class="hud-divider"></div>
         <div class="flag-icon">🚩</div>
         <div class="flag-text-group">
           <div class="flag-label">FLAGS COLLECTED</div>
@@ -27,19 +32,120 @@
     </div>
 
     <!-- 2. MAP CONTROLS & ZOOM WIDGET (Top-Right) -->
-    <div class="clean-zoom-widget">
+    <div class="clean-zoom-widget hud-element hud-hidden" id="hud-zoom-bar">
+      <button id="btn-custom-hero" class="zoom-btn" title="Customize Hero Name & Flag">👤</button>
       <button id="btn-zoom-in" class="zoom-btn" title="Zoom In (+)">➕</button>
       <button id="btn-reset-cam" class="zoom-btn" title="Reset View (Center)">⊙</button>
       <button id="btn-zoom-out" class="zoom-btn" title="Zoom Out (−)">➖</button>
     </div>
 
     <!-- 3. RADAR MINIMAP (Bottom-Right) -->
-    <div class="minimap-wrapper">
+    <div class="minimap-wrapper hud-element hud-hidden" id="hud-minimap-bar">
       <div class="minimap-header">
         <span>CIRCULAR DILLI RADAR</span>
         <span class="star-dest">★ Jantar Mantar</span>
       </div>
       <canvas id="minimap-canvas" width="200" height="200"></canvas>
+    </div>
+
+    <!-- START / WELCOME MODAL WITH REALTIME BACKGROUND & CUSTOMIZATION -->
+    <div id="start-modal" class="modal-backdrop active start-screen-backdrop">
+      <div class="start-game-dialog">
+        <!-- Dialog Header -->
+        <div class="start-dialog-header">
+          <div class="game-brand-pill">
+            <span class="pulsing-green-dot"></span>
+            <span>LIVE 2D MAP • DELHI HERITAGE MAZE</span>
+          </div>
+          <h1 class="start-title">JANTAR MANTAR 2.0</h1>
+          <p class="start-subtitle">Circular Road Stealth Adventure • 6 Flags • Evade Police Patrols</p>
+        </div>
+
+        <!-- Customizer Content: Left Form, Right Hero Preview -->
+        <div class="start-customizer-grid">
+          <!-- Left Column: Name & Flag Picker -->
+          <div class="customizer-controls">
+            <!-- 1. Player Name Input -->
+            <div class="start-form-section">
+              <label for="player-name-input" class="start-field-label">
+                <span class="label-icon">👤</span>
+                <span>PLAYER / PROTESTER NAME (તમારું નામ)</span>
+              </label>
+              <div class="name-input-wrapper">
+                <input 
+                  type="text" 
+                  id="player-name-input" 
+                  class="start-input-text" 
+                  placeholder="Enter your name..." 
+                  value="Aam Aadmi" 
+                  maxlength="20"
+                  autocomplete="off"
+                />
+                <button type="button" id="btn-random-name" class="btn-dice" title="Random Hero Name">🎲</button>
+              </div>
+            </div>
+
+            <!-- 2. Country Flag Picker -->
+            <div class="start-form-section">
+              <label class="start-field-label">
+                <span class="label-icon">🚩</span>
+                <span>CHOOSE COUNTRY / FACTION FLAG (દેશનો ધ્વજ પસંદ કરો)</span>
+              </label>
+              <div class="flags-picker-scrollable" id="flags-picker-container">
+                <!-- Injected via JavaScript with interactive flag chips -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Live Hero & Flag Preview Card -->
+          <div class="start-preview-column">
+            <div class="preview-badge-header">HERO LIVE PREVIEW</div>
+            
+            <div class="hero-preview-stage">
+              <div class="stage-radial-light"></div>
+              <div class="preview-avatar-box">
+                <div class="preview-flag-mount">
+                  <div class="preview-flag-pole"></div>
+                  <div class="preview-flag-cloth" id="preview-flag-banner">
+                    <div class="stripe s1" id="preview-stripe-1"></div>
+                    <div class="stripe s2" id="preview-stripe-2"></div>
+                    <div class="stripe s3" id="preview-stripe-3"></div>
+                  </div>
+                </div>
+                <div class="preview-character-body">
+                  <div class="preview-cap"></div>
+                  <div class="preview-head">👓</div>
+                  <div class="preview-jacket"></div>
+                </div>
+              </div>
+              <div class="preview-hero-label" id="preview-hero-tag">🇮🇳 Aam Aadmi</div>
+            </div>
+
+            <div class="preview-country-info">
+              <span class="preview-country-flag" id="preview-country-emoji">🇮🇳</span>
+              <span class="preview-country-text" id="preview-country-title">India (Tricolor)</span>
+            </div>
+
+            <!-- Mini Quick Guide -->
+            <div class="mini-objectives-box">
+              <div class="obj-title">🎯 MISSION OBJECTIVES</div>
+              <div class="obj-item"><span>🚩</span> Collect 6 hidden flags in circular road rings</div>
+              <div class="obj-item"><span>👮</span> Evade Delhi Police patrol vision cones</div>
+              <div class="obj-item"><span>🏛️</span> Gather safely at central Vrihat Samrat Yantra</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Start Game Action Footer -->
+        <div class="start-dialog-footer">
+          <button id="btn-start-game" class="btn-start-action">
+            <span class="btn-icon">⚡</span>
+            <span class="btn-text">START MISSION (રમત શરૂ કરો)</span>
+            <span class="btn-arrow">➔</span>
+          </button>
+          <div class="start-key-hint">💡 Press <strong>ENTER</strong> or Click Start to play • Map is moving live in background!</div>
+        </div>
+      </div>
     </div>
 
     <!-- VICTORY MODAL -->
