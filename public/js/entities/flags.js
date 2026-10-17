@@ -59,6 +59,34 @@ class FlagManager {
     });
   }
 
+  // Position flags on the active route map's specific road coordinates
+  initFlagsForMap(mapTheme) {
+    if (!mapTheme || !mapTheme.flagLocations) {
+      this.initFlags();
+      return;
+    }
+    const locs = mapTheme.flagLocations;
+    const country = this.countryFlag || {
+      emoji: '🇮🇳',
+      name: 'India',
+      color: '#f97316',
+      stripeColors: ['#f97316', '#ffffff', '#16a34a']
+    };
+
+    this.flags = locs.map((loc, idx) => ({
+      id: loc.id || `flag-${idx + 1}`,
+      name: `${country.emoji} Flag #${idx + 1} (${country.name})`,
+      label: loc.name,
+      color: country.color || loc.color || '#ef4444',
+      stripeColors: country.stripeColors || ['#f97316', '#ffffff', '#16a34a'],
+      countryEmoji: country.emoji,
+      x: loc.x,
+      y: loc.y,
+      isCollected: false,
+      pulseOffset: idx * 0.7
+    }));
+  }
+
   update(deltaTime, player, onCollect) {
     this.animTime += deltaTime;
 

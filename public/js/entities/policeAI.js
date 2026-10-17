@@ -5,6 +5,7 @@ class PoliceAIManager {
     this.roadNetwork = roadNetwork;
     this.officers = [];
     this.animTime = 0;
+    this.graceTimer = 0; // Safe immunity timer on game start
 
     this.initOfficers();
   }
@@ -14,16 +15,16 @@ class PoliceAIManager {
     const rings = this.config.circularLayout.rings;
     const radials = this.config.circularLayout.radialAvenues;
 
-    // Station police officers across key intersections with defined patrol directions
+    // Station police officers across key intersections AWAY from the player spawn point (Ring 4, Rad 6)
     const spawnConfigs = [
       { ringIdx: 3, radIdx: 1, name: 'Const. Bhati', patrolType: 'ring', dir: 1 },
-      { ringIdx: 3, radIdx: 5, name: 'Const. Sharma', patrolType: 'ring', dir: -1 },
+      { ringIdx: 3, radIdx: 2, name: 'Const. Sharma', patrolType: 'ring', dir: -1 },
+      { ringIdx: 3, radIdx: 3, name: 'Const. Gupta', patrolType: 'ring', dir: 1 },
       { ringIdx: 2, radIdx: 0, name: 'SI Verma', patrolType: 'radial', spoke: 0 },
-      { ringIdx: 2, radIdx: 3, name: 'Const. Yadav', patrolType: 'ring', dir: 1 },
-      { ringIdx: 2, radIdx: 6, name: 'Const. Meena', patrolType: 'radial', spoke: 6 },
-      { ringIdx: 1, radIdx: 2, name: 'ACP Malik', patrolType: 'ring', dir: -1 },
-      { ringIdx: 1, radIdx: 4, name: 'Insp. Chauhan', patrolType: 'radial', spoke: 4 },
-      { ringIdx: 4, radIdx: 7, name: 'Const. Singh', patrolType: 'ring', dir: 1 }
+      { ringIdx: 2, radIdx: 4, name: 'Const. Yadav', patrolType: 'radial', spoke: 4 },
+      { ringIdx: 1, radIdx: 1, name: 'ACP Malik', patrolType: 'ring', dir: -1 },
+      { ringIdx: 1, radIdx: 3, name: 'Insp. Chauhan', patrolType: 'radial', spoke: 3 },
+      { ringIdx: 4, radIdx: 2, name: 'Const. Singh', patrolType: 'ring', dir: 1 } // Opposite side of Ring 4
     ];
 
     this.officers = spawnConfigs.map((cfg, idx) => {
@@ -35,14 +36,16 @@ class PoliceAIManager {
       return {
         id: `pol-${idx}`,
         name: cfg.name,
+        startX: x,
+        startY: y,
         x,
         y,
         angle: radial.angle,
         state: 'patrol', // 'patrol', 'chase', 'lost'
         speed: 95, // Continuous patrol speed
-        chaseSpeed: 170, // Chase speed
-        visionRange: 220, // Spot range
-        loseChaseRange: 380, // Distance to escape
+        chaseSpeed: 165, // Chase speed
+        visionRange: 210, // Spot range
+        loseChaseRange: 360, // Distance to escape
         
         // Navigation
         currentPath: [],
@@ -59,14 +62,70 @@ class PoliceAIManager {
     });
   }
 
-  update(deltaTime, player, onCatchProtester) {
+  // Reset all officers to starting patrol positions and activate safe grace period
+  resetToPatrol(playerSpawn) {
+    this.graceTimer = 4.0; // 4 seconds of safe grace period
+    const center = this.config.circularLayout.center;
+
+    this.officers.forEach(officer => {
+      officer.x = officer.startX;
+      officer.y = officer.startY;
+
+      // If any officer is stationed close to player's chosen spawn point (< 650px), relocate to opposite quadrant
+      if (playerSpawn && Math.hypot(officer.x - playerSpawn.x, officer.y - playerSpawn.y) < 650) {
+        officer.x = center.x - (officer.startX - center.x);
+        officer.y = center.y - (officer.startY - center.y);
+      }
+
+      officer.state = 'patrol';
+      officer.currentPath = [];
+      officer.waypointIndex = 0;
+      officer.bubbleText = 'Patrolling road';
+      officer.bubbleTimer = 1.0;
+    });
+  }
+
+  // Re-distribute officers across the new route network
+  repositionOfficersForMap(roadNetwork) {
+    if (!roadNetwork || !roadNetwork.nodes || !roadNetwork.nodes.length) return;
+    const nodes = roadNetwork.nodes;
+    const num = this.officers.length || 8;
+
+    this.officers.forEach((officer, idx) => {
+      const targetIdx = Math.floor((nodes.length * (idx + 1)) / (num + 1)) % nodes.length;
+      const node = nodes[targetIdx] || nodes[idx % nodes.length];
+      officer.startX = node.x;
+      officer.startY = node.y;
+      officer.x = node.x;
+      officer.y = node.y;
+      officer.state = 'patrol';
+      officer.currentPath = [];
+      officer.waypointIndex = 0;
+      officer.bubbleText = 'Patrolling road';
+      officer.bubbleTimer = 1.5;
+    });
+  }
+
+  update(deltaTime, player, onCatchProtester, isGameActive = true) {
     this.animTime += deltaTime;
+    if (this.graceTimer > 0) {
+      this.graceTimer -= deltaTime;
+    }
+
+    // Only allow detecting/chasing the player if game is active AND grace period has ended
+    const canDetectPlayer = isGameActive && (!this.graceTimer || this.graceTimer <= 0);
 
     this.officers.forEach(officer => {
       officer.bubbleTimer -= deltaTime;
 
       const distToPlayer = Math.hypot(player.x - officer.x, player.y - officer.y);
-      const hasLOS = distToPlayer < officer.visionRange && this.roadNetwork.hasRoadLineOfSight(officer.x, officer.y, player.x, player.y);
+      const hasLOS = canDetectPlayer && distToPlayer < officer.visionRange && this.roadNetwork.hasRoadLineOfSight(officer.x, officer.y, player.x, player.y);
+
+      // If game not active or in grace immunity, force officer to stay in patrol state
+      if (!canDetectPlayer && officer.state !== 'patrol') {
+        officer.state = 'patrol';
+        officer.currentPath = [];
+      }
 
       // 1. Patrol State
       if (officer.state === 'patrol') {
@@ -83,11 +142,11 @@ class PoliceAIManager {
       } 
       // 2. Chase State
       else if (officer.state === 'chase') {
-        if (distToPlayer > officer.loseChaseRange) {
-          // Protester successfully ran away!
+        if (!canDetectPlayer || distToPlayer > officer.loseChaseRange) {
+          // Protester successfully ran away or grace active!
           officer.state = 'lost';
           officer.bubbleText = '❓ Lost him! Resuming patrol';
-          officer.bubbleTimer = 2.5;
+          officer.bubbleTimer = 2.0;
           officer.currentPath = [];
         } else {
           // Update chase path periodically
@@ -98,9 +157,9 @@ class PoliceAIManager {
 
           this.followPath(officer, officer.chaseSpeed, deltaTime);
 
-          // Catch Condition (< 25px)
-          if (distToPlayer < 25) {
-            if (onCatchProtester) onCatchProtester(officer);
+          // Catch Condition (< 24px, out of grace, with line of sight)
+          if (canDetectPlayer && distToPlayer < 24 && onCatchProtester) {
+            onCatchProtester(officer);
           }
         }
       } 
@@ -233,6 +292,7 @@ class PoliceAIManager {
   }
 
   isAnyPoliceChasing() {
+    if (this.graceTimer > 0) return false;
     return this.officers.some(o => o.state === 'chase');
   }
 

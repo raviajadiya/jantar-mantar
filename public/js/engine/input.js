@@ -46,9 +46,14 @@ class InputManager {
           this.camera.targetX = this.dragStart.camX - dx / this.camera.zoom;
           this.camera.targetY = this.dragStart.camY - dy / this.camera.zoom;
         } else if (this.gameMode === 'walk') {
-          // Continuously steer player towards mouse in walk mode
-          if (this.onWorldClick) {
-            this.onWorldClick(this.mouse.worldX, this.mouse.worldY);
+          // Steer towards mouse with slight throttle to prevent recalculation thrashing
+          const now = performance.now();
+          if (this.onWorldClick && (!this.lastMoveClickTime || now - this.lastMoveClickTime > 180)) {
+            const dragDist = Math.hypot(e.clientX - this.dragStart.x, e.clientY - this.dragStart.y);
+            if (dragDist > 25) {
+              this.lastMoveClickTime = now;
+              this.onWorldClick(this.mouse.worldX, this.mouse.worldY);
+            }
           }
         }
       }

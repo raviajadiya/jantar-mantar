@@ -10,8 +10,13 @@ class DilliMinimap {
     this.width = this.canvas.width;
     this.height = this.canvas.height;
 
+    this.theme = null;
     this.onMinimapClick = null;
     this.initClick();
+  }
+
+  setMapTheme(theme) {
+    this.theme = theme;
   }
 
   initClick() {
@@ -35,7 +40,7 @@ class DilliMinimap {
     const h = this.height;
 
     // Background
-    ctx.fillStyle = '#f5efe3';
+    ctx.fillStyle = this.theme ? this.theme.bgCanvas : '#f5efe3';
     ctx.fillRect(0, 0, w, h);
 
     const scaleX = w / this.worldWidth;
@@ -43,31 +48,29 @@ class DilliMinimap {
     const cx = this.config.circularLayout.center.x * scaleX;
     const cy = this.config.circularLayout.center.y * scaleY;
 
-    // 1. Draw Concentric Road Rings
-    ctx.strokeStyle = '#cbd5e1';
-    ctx.lineWidth = 3.5;
-    this.config.circularLayout.rings.forEach((ring, idx) => {
+    // 1. Draw All Road Network Segments of the Active Route Map
+    ctx.strokeStyle = this.theme ? (this.theme.curbColor || '#cbd5e1') : '#cbd5e1';
+    ctx.lineWidth = 2.8;
+
+    const segments = (this.roadNetwork && this.roadNetwork.segments) || [];
+    segments.forEach(seg => {
       ctx.beginPath();
-      ctx.arc(cx, cy, ring.radius * scaleX, 0, Math.PI * 2);
+      if (seg.type === 'line') {
+        ctx.moveTo(seg.x1 * scaleX, seg.y1 * scaleY);
+        ctx.lineTo(seg.x2 * scaleX, seg.y2 * scaleY);
+      } else if (seg.type === 'arc') {
+        ctx.arc(seg.cx * scaleX, seg.cy * scaleY, seg.radius * scaleX, seg.startAngle, seg.endAngle);
+      }
       ctx.stroke();
     });
 
-    // 2. Draw 8 Radial Avenues
-    const maxR = this.config.circularLayout.rings[this.config.circularLayout.rings.length - 1].radius * scaleX;
-    this.config.circularLayout.radialAvenues.forEach(rad => {
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + Math.cos(rad.angle) * maxR, cy + Math.sin(rad.angle) * maxR);
-      ctx.stroke();
-    });
-
-    // 3. Central Jantar Mantar Green Circle & Golden Star
-    ctx.fillStyle = '#86efac';
+    // 3. Central Sanctuary Circle & Golden Star
+    ctx.fillStyle = this.theme ? this.theme.centerGrass : '#86efac';
     ctx.beginPath();
     ctx.arc(cx, cy, this.config.circularLayout.rings[0].radius * scaleX, 0, Math.PI * 2);
     ctx.fill();
 
-    this.drawStar(cx, cy, 5, 8, 4, '#eab308');
+    this.drawStar(cx, cy, 5, 8, 4, this.theme ? this.theme.accent : '#eab308');
 
     // 4. Draw Uncollected Protest Flags
     flags.forEach(f => {

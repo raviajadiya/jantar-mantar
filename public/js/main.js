@@ -25,9 +25,12 @@ window.addEventListener('DOMContentLoaded', () => {
   camera.moveTo(centerPos.x, centerPos.y, true);
   camera.setZoom(0.85);
 
-  // 3. Spawn Protester Player on the Outer Ring (Sansad Marg West Spoke)
-  const spawnNode = roadNetwork.nodes.find(n => n.ringIndex === 4 && n.radialIndex === 6) || roadNetwork.nodes[10];
-  const player = new window.ProtesterPlayer(spawnNode.x, spawnNode.y, roadNetwork);
+  // 3. Spawn Protester Player on the Last (Outermost) Ring (Ring 4, radius 1400)
+  const outerSpokeNodes = roadNetwork.getOuterRingSpokeNodes();
+  const initialSpawn = (outerSpokeNodes && outerSpokeNodes.length > 0)
+    ? (outerSpokeNodes.find(n => n.radialIndex === 6) || outerSpokeNodes[0])
+    : (roadNetwork.getOuterRingNodes()[0] || { x: 400, y: 1800 });
+  const player = new window.ProtesterPlayer(initialSpawn.x, initialSpawn.y, roadNetwork);
 
   // 4. Managers & Drawers
   const mapDrawer = new window.CircularMapDrawer(ctx, config, roadNetwork);
@@ -233,6 +236,17 @@ window.addEventListener('DOMContentLoaded', () => {
     const rawName = playerNameInput ? playerNameInput.value.trim() : '';
     const finalName = rawName || 'Aam Aadmi';
 
+    // 1. Start from a point on the LAST (outermost) ring (Ring 4, radius 1400)
+    const outerRingNodes = roadNetwork.getOuterRingNodes();
+    const spawnNode = (outerRingNodes && outerRingNodes.length > 0)
+      ? outerRingNodes[Math.floor(Math.random() * outerRingNodes.length)]
+      : initialSpawn;
+
+    player.x = spawnNode.x;
+    player.y = spawnNode.y;
+    player.path = [];
+    player.isMoving = false;
+
     // Apply Identity & Flag to Player Entity AND all 6 map collection flags
     player.setNameAndFlag(finalName, selectedCountryFlag);
     flagManager.setCountryFlag(selectedCountryFlag);
@@ -249,18 +263,21 @@ window.addEventListener('DOMContentLoaded', () => {
     // Set Game Active
     isGameStarted = true;
 
+    // Reset police officers to distant patrol stations with 4s safe grace immunity
+    policeManager.resetToPatrol(spawnNode);
+
     // Smoothly Reveal HUD & Minimap
     if (hudTopBar) hudTopBar.classList.remove('hud-hidden');
     if (hudZoomBar) hudZoomBar.classList.remove('hud-hidden');
     if (hudMinimapBar) hudMinimapBar.classList.remove('hud-hidden');
 
-    // Smooth Camera Transition to Player
+    // Smooth Camera Transition to Player on the Last Ring
     camera.moveTo(player.x, player.y);
     camera.setZoom(1.15);
     camera.setFollow(player);
 
-    hud.logAction(`✊ Hero ${player.name} deployed representing ${selectedCountryFlag.name} ${selectedCountryFlag.emoji}!`);
-    hud.logAction(`🚩 MISSION: Find and plant all 6 ${selectedCountryFlag.name} flags at Center Samrat Yantra!`);
+    hud.logAction(`✊ Hero ${player.name} deployed on the Perimeter Ring representing ${selectedCountryFlag.name} ${selectedCountryFlag.emoji}!`);
+    hud.logAction(`🚩 MISSION: Find and plant all 6 ${selectedCountryFlag.name} flags at Vrihat Samrat Yantra Sundial!`);
     hud.logAction('⚠️ Watch out for patrolling police! Move strictly on roads.');
   }
 
@@ -288,8 +305,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Initial Preview Call
-  updateGameCardPreview();
+  // Initialize Jantar Mantar Map on load
+  roadNetwork.buildGraphForMap('jantar');
+  mapDrawer.setMapTheme('jantar');
+  minimap.setMapTheme(window.MAP_THEMES ? window.MAP_THEMES.jantar : null);
 
   // ========================================================
   // MINIMAP & CANVAS INTERACTION
@@ -349,8 +368,8 @@ window.addEventListener('DOMContentLoaded', () => {
       camera.moveTo(camX, camY);
       camera.setZoom(0.88);
 
-      // AI updates in background for live real-time simulation
-      policeManager.update(deltaTime, player, null);
+      // AI updates in background for live real-time simulation (game not started: never detect or chase player)
+      policeManager.update(deltaTime, player, null, false);
     } else {
       input.setGameMode(hud.gameMode);
 
@@ -375,7 +394,7 @@ window.addEventListener('DOMContentLoaded', () => {
       // Update Entities
       if (!hud.isGameOver) {
         flagManager.update(deltaTime, player, onFlagCollect);
-        policeManager.update(deltaTime, player, onCatchProtester);
+        policeManager.update(deltaTime, player, onCatchProtester, true);
       }
       hud.update(deltaTime);
     }
@@ -386,7 +405,8 @@ window.addEventListener('DOMContentLoaded', () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Background color
-    ctx.fillStyle = hud.viewMode === 'blueprint' ? '#091524' : config.colors.bgColor;
+    const activeBg = (mapDrawer.theme && mapDrawer.theme.bgCanvas) || config.colors.bgColor || '#e3dfd3';
+    ctx.fillStyle = hud.viewMode === 'blueprint' ? '#091524' : activeBg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     camera.apply(ctx);

@@ -40,14 +40,27 @@ class ProtesterPlayer {
     this.speechText = `${emoji} ${this.name}`;
   }
 
-  // Set destination: Computes shortest path along road network
+  // Set destination: Snaps to the closest road point and follows the road network strictly
   setDestination(destX, destY) {
-    const roadPoint = this.roadNetwork.findClosestRoadPoint(destX, destY);
-    this.path = this.roadNetwork.findPath(this.x, this.y, roadPoint.x, roadPoint.y);
-    this.currentWaypointIndex = 0;
+    if (!this.roadNetwork) return;
+
+    // 1. Find the exact point ON A ROAD that is closest to clicked location
+    const targetRoadPoint = this.roadNetwork.findClosestPointOnRoad(destX, destY);
+
+    // 2. Ensure player starting position is also on a valid road
+    const startRoadPoint = this.roadNetwork.findClosestPointOnRoad(this.x, this.y);
+
+    // 3. Find path strictly through interconnected road network
+    const calculatedPath = this.roadNetwork.findPath(startRoadPoint.x, startRoadPoint.y, targetRoadPoint.x, targetRoadPoint.y);
+
+    if (calculatedPath && calculatedPath.length > 0) {
+      this.path = calculatedPath;
+      this.currentWaypointIndex = 0;
+      this.isMoving = true;
+    }
   }
 
-  // Direct manual move via WASD with wall sliding
+  // Direct manual move via WASD with strict road boundaries
   manualMove(dx, dy, deltaTime, isRunning) {
     this.isRunning = isRunning;
     const curSpeed = isRunning ? this.runSpeed : this.speed;
@@ -58,8 +71,8 @@ class ProtesterPlayer {
     const stepX = (dx / len) * step;
     const stepY = (dy / len) * step;
 
-    // 1. Try full diagonal step
-    if (this.roadNetwork.isPointOnRoad(this.x + stepX, this.y + stepY)) {
+    // 1. Try full diagonal step strictly on road
+    if (this.roadNetwork.isPointOnRoad(this.x + stepX, this.y + stepY, 2)) {
       this.x += stepX;
       this.y += stepY;
       this.angle = Math.atan2(dy, dx);
@@ -69,7 +82,7 @@ class ProtesterPlayer {
     }
 
     // 2. Try sliding along X only
-    if (this.roadNetwork.isPointOnRoad(this.x + stepX, this.y)) {
+    if (this.roadNetwork.isPointOnRoad(this.x + stepX, this.y, 2)) {
       this.x += stepX;
       this.angle = Math.atan2(0, dx);
       this.isMoving = true;
@@ -78,26 +91,12 @@ class ProtesterPlayer {
     }
 
     // 3. Try sliding along Y only
-    if (this.roadNetwork.isPointOnRoad(this.x, this.y + stepY)) {
+    if (this.roadNetwork.isPointOnRoad(this.x, this.y + stepY, 2)) {
       this.y += stepY;
       this.angle = Math.atan2(dy, 0);
       this.isMoving = true;
       this.path = [];
       return;
-    }
-
-    // 4. If slightly off-road, gently project back towards closest road point
-    const closest = this.roadNetwork.findClosestNode(this.x, this.y);
-    if (closest) {
-      const cdx = closest.x - this.x;
-      const cdy = closest.y - this.y;
-      const cdist = Math.hypot(cdx, cdy);
-      if (cdist > 1) {
-        this.x += (cdx / cdist) * Math.min(cdist, step);
-        this.y += (cdy / cdist) * Math.min(cdist, step);
-        this.isMoving = true;
-        this.path = [];
-      }
     }
   }
 
@@ -106,7 +105,7 @@ class ProtesterPlayer {
     this.isRunning = isRunning;
     const curSpeed = isRunning ? this.runSpeed : this.speed;
 
-    // Follow Waypoint Path if active
+    // Follow Waypoint Path strictly along road corridors
     if (this.path && this.path.length > 0 && this.currentWaypointIndex < this.path.length) {
       const target = this.path[this.currentWaypointIndex];
       const dx = target.x - this.x;
@@ -123,8 +122,19 @@ class ProtesterPlayer {
         this.isMoving = true;
         this.angle = Math.atan2(dy, dx);
         const step = Math.min(dist, curSpeed * deltaTime);
-        this.x += (dx / dist) * step;
-        this.y += (dy / dist) * step;
+        const nextX = this.x + (dx / dist) * step;
+        const nextY = this.y + (dy / dist) * step;
+
+        // Strict Road Check: Never step off the road!
+        if (this.roadNetwork.isPointOnRoad(nextX, nextY, 15)) {
+          this.x = nextX;
+          this.y = nextY;
+        } else {
+          // If slight chord deviation, snap to closest point on road corridor (NEVER teleport through buildings)
+          const snapped = this.roadNetwork.findClosestPointOnRoad(nextX, nextY);
+          this.x = snapped.x;
+          this.y = snapped.y;
+        }
       }
     } else if (!this.path || this.path.length === 0) {
       if (!this.manualMovingThisFrame) {
