@@ -377,9 +377,14 @@ window.addEventListener('DOMContentLoaded', () => {
     currentLevel++;
     AudioEngine.playDeploy();
 
-    // 1. Calculate Expanded Dimensions for Next Level
+    // 1. Calculate Expanded Dimensions for Next Level (Expands every 5 levels: 5, 10, 15, 20...)
+    const extraRings = Math.floor(currentLevel / 5);
     const baseRings = [240, 480, 760, 1080, 1400];
-    const maxR = 1400 + (currentLevel - 1) * 320;
+    const rings = [...baseRings];
+    for (let i = 1; i <= extraRings; i++) {
+      rings.push(1400 + i * 320);
+    }
+    const maxR = rings[rings.length - 1];
     const worldSize = Math.max(3600, (maxR + 420) * 2);
     const newCenter = { x: worldSize / 2, y: worldSize / 2 };
 
@@ -387,15 +392,9 @@ window.addEventListener('DOMContentLoaded', () => {
     config.world.height = worldSize;
     config.world.center = newCenter;
     config.circularLayout.center = newCenter;
-
-    // Rings metadata in config
-    const rings = [...baseRings];
-    for (let l = 2; l <= currentLevel; l++) {
-      rings.push(1400 + (l - 1) * 320);
-    }
     config.circularLayout.rings = rings.map((r, i) => ({ id: `ring-${i}`, radius: r, name: `Ring ${i}` }));
 
-    // 2. Rebuild Road Network with expanded rings
+    // 2. Rebuild Road Network with progressive rings
     roadNetwork.center = newCenter;
     roadNetwork.buildGraphForMap(currentLevel);
 
@@ -403,14 +402,14 @@ window.addEventListener('DOMContentLoaded', () => {
     camera.setWorldSize(worldSize, worldSize);
     minimap.setWorldSize(worldSize, worldSize);
 
-    // 4. Regenerate Flags for New Level (more flags distributed across rings)
+    // 4. Regenerate Flags for New Level (Flags increase on every single level: 1, 2, 3, 4, 5...)
     flagManager.initFlags(currentLevel);
     flagManager.setCountryFlag(selectedCountryFlag);
 
     // 5. Scale Police AI for New Level
     policeManager.initOfficers(currentLevel);
 
-    // 6. Spawn Protester Player on the NEW Outermost Ring
+    // 6. Spawn Protester Player on the Outermost Ring
     const outerRingNodes = roadNetwork.getOuterRingNodes();
     const spawnNode = (outerRingNodes && outerRingNodes.length > 0)
       ? outerRingNodes[Math.floor(Math.random() * outerRingNodes.length)]
@@ -432,8 +431,13 @@ window.addEventListener('DOMContentLoaded', () => {
     // Update HUD Level Badge
     hud.setLevel(currentLevel);
 
-    hud.logAction(`🚀 LEVEL ${currentLevel} BEGUN! Map expanded to ${rings.length} rings with ${flagManager.getTotalCount()} flags!`);
-    hud.logAction('⚠️ Watch out for patrols on inner avenues! Collect all flags to reveal the Gandhi Cap!');
+    const isMapExpanded = (currentLevel % 5 === 0);
+    if (isMapExpanded) {
+      hud.logAction(`🌟 MILESTONE REACHED! Map expanded to ${rings.length} rings with ${flagManager.getTotalCount()} flags!`);
+    } else {
+      const nextExpandIn = 5 - (currentLevel % 5);
+      hud.logAction(`🚀 LEVEL ${currentLevel} BEGUN! Flags increased to ${flagManager.getTotalCount()}! (Map expands at Level ${currentLevel + nextExpandIn})`);
+    }
   };
 
   // ========================================================

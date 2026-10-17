@@ -124,13 +124,25 @@ class GameHUD {
     this.isGameOver = true;
     if (this.victoryModal) {
       const total = this.flagManager.getTotalCount();
+      const nextLevel = this.level + 1;
+      const isNextMapExpanded = (nextLevel % 5 === 0);
+
       if (this.victoryModalTitle) this.victoryModalTitle.textContent = `LEVEL ${this.level} COMPLETED! 🏆`;
       if (this.victoryModalSubtitle) this.victoryModalSubtitle.textContent = `All ${total} Flags Secured & Center Gandhi Cap Claimed! 🧢`;
       if (this.victoryModalDesc) {
-        this.victoryModalDesc.innerHTML = `Outstanding navigation! Click <strong>Continue</strong> to expand to <strong>Level ${this.level + 1}</strong> with a larger circular road map and more flags to collect!`;
+        if (isNextMapExpanded) {
+          this.victoryModalDesc.innerHTML = `🌟 <strong>MILESTONE!</strong> Click Continue to enter <strong>Level ${nextLevel}</strong>: The <strong>MAP WILL EXPAND</strong> with an extra circular ring and more flags!`;
+        } else {
+          const nextExpand = 5 - (nextLevel % 5);
+          this.victoryModalDesc.innerHTML = `Outstanding navigation! Click Continue to advance to <strong>Level ${nextLevel}</strong> with <strong>more flags</strong>! (Map expands at Level ${nextLevel + nextExpand})`;
+        }
       }
       if (this.btnContinueLevel) {
-        this.btnContinueLevel.innerHTML = `▶ CONTINUE TO LEVEL ${this.level + 1} (મોટો મેપ & વધુ ફ્લેગ્સ)`;
+        if (isNextMapExpanded) {
+          this.btnContinueLevel.innerHTML = `▶ CONTINUE TO LEVEL ${nextLevel} (🌟 મોટો મેપ & વધુ ફ્લેગ્સ)`;
+        } else {
+          this.btnContinueLevel.innerHTML = `▶ CONTINUE TO LEVEL ${nextLevel} (🚩 વધુ ફ્લેગ્સ)`;
+        }
       }
       this.victoryModal.classList.add('active');
     }

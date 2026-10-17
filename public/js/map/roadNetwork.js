@@ -28,17 +28,18 @@ class RoadNetwork {
 
   // ========================================================
   // Jantar Mantar Progressive Multi-Level Network
-  // Level 1: 5 rings (up to 1400px)
-  // Each next level adds +1 outer ring (+320px) and expands the map!
+  // Level 1-4: 5 base rings (up to 1400px)
+  // Map expands (+1 outer ring, +320px) every 5 levels (Level 5, 10, 15, 20...)
   // ========================================================
   buildJantarMantarNetwork(level = 1) {
     const cx = this.center.x;
     const cy = this.center.y;
 
+    const extraRings = Math.floor(level / 5);
     const baseRings = [240, 480, 760, 1080, 1400];
     const rings = [...baseRings];
-    for (let l = 2; l <= level; l++) {
-      rings.push(1400 + (l - 1) * 320);
+    for (let i = 1; i <= extraRings; i++) {
+      rings.push(1400 + i * 320);
     }
     this.rings = rings;
 
