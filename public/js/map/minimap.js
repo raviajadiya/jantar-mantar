@@ -19,6 +19,11 @@ class DilliMinimap {
     this.theme = theme;
   }
 
+  setWorldSize(worldWidth, worldHeight) {
+    this.worldWidth = worldWidth;
+    this.worldHeight = worldHeight;
+  }
+
   initClick() {
     this.canvas.addEventListener('click', (e) => {
       const rect = this.canvas.getBoundingClientRect();
@@ -64,13 +69,25 @@ class DilliMinimap {
       ctx.stroke();
     });
 
-    // 3. Central Sanctuary Circle & Golden Star
+    // 3. Central Sanctuary Circle & Golden Cap/Star
+    const allSecured = flags.length > 0 && flags.every(f => f.isCollected);
     ctx.fillStyle = this.theme ? this.theme.centerGrass : '#86efac';
     ctx.beginPath();
-    ctx.arc(cx, cy, this.config.circularLayout.rings[0].radius * scaleX, 0, Math.PI * 2);
+    ctx.arc(cx, cy, (this.config.circularLayout.rings[0] ? this.config.circularLayout.rings[0].radius : 240) * scaleX, 0, Math.PI * 2);
     ctx.fill();
 
-    this.drawStar(cx, cy, 5, 8, 4, this.theme ? this.theme.accent : '#eab308');
+    if (allSecured) {
+      // Golden pulsing beacon on radar
+      const pR = 10 + Math.sin(Date.now() / 150) * 4;
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, pR, 0, Math.PI * 2);
+      ctx.stroke();
+      this.drawStar(cx, cy, 5, 10, 5, '#facc15');
+    } else {
+      this.drawStar(cx, cy, 5, 8, 4, this.theme ? this.theme.accent : '#eab308');
+    }
 
     // 4. Draw Uncollected Protest Flags
     flags.forEach(f => {

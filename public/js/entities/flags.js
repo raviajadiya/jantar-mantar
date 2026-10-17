@@ -32,31 +32,49 @@ class FlagManager {
     return `${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}`;
   }
 
-  initFlags() {
-    const rawFlags = this.config.flagLocations;
+  initFlags(level = 1) {
+    this.currentLevel = Math.max(1, parseInt(level) || 1);
     const center = this.config.circularLayout.center;
     const rings = this.config.circularLayout.rings;
     const radials = this.config.circularLayout.radialAvenues;
+    const numRings = rings.length;
 
-    this.flags = rawFlags.map((rf, idx) => {
-      const ring = rings[rf.ringIndex];
-      const radial = radials[rf.radialIndex];
+    // Number of flags increases with each level: Level 1: 6, Level 2: 8, Level 3: 10...
+    const count = 4 + this.currentLevel * 2;
+    const country = this.countryFlag || {
+      emoji: '🇮🇳',
+      name: 'India',
+      color: '#f97316',
+      stripeColors: ['#f97316', '#ffffff', '#16a34a']
+    };
+
+    const newFlags = [];
+    for (let i = 0; i < count; i++) {
+      // Distribute from ring 1 up to outermost ring, spreading across radials
+      const ringIdx = 1 + (i % (numRings - 1));
+      const radIdx = (i * 3 + 1) % radials.length;
+      const ring = rings[ringIdx] || rings[rings.length - 1];
+      const radial = radials[radIdx];
+
       const x = center.x + Math.cos(radial.angle) * ring.radius;
       const y = center.y + Math.sin(radial.angle) * ring.radius;
 
-      return {
-        id: rf.id,
-        name: rf.name,
-        label: rf.label,
-        color: rf.color || '#ef4444',
-        stripeColors: ['#f97316', '#ffffff', '#16a34a'],
-        countryEmoji: '🇮🇳',
+      newFlags.push({
+        id: `flag-lvl${this.currentLevel}-${i + 1}`,
+        name: `${country.emoji} Flag #${i + 1} (${country.name})`,
+        label: `${radial.name ? radial.name.split(' ')[0] : 'Delhi'} Flag`,
+        color: country.color || '#ef4444',
+        stripeColors: country.stripeColors || ['#f97316', '#ffffff', '#16a34a'],
+        countryEmoji: country.emoji,
         x,
         y,
         isCollected: false,
-        pulseOffset: idx * 0.7
-      };
-    });
+        pulseOffset: i * 0.65
+      });
+    }
+
+    this.flags = newFlags;
+    this.particles = [];
   }
 
   // Position flags on the active route map's specific road coordinates

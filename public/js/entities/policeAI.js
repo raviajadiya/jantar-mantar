@@ -10,25 +10,40 @@ class PoliceAIManager {
     this.initOfficers();
   }
 
-  initOfficers() {
+  initOfficers(level = 1) {
+    this.currentLevel = Math.max(1, parseInt(level) || 1);
     const center = this.config.circularLayout.center;
     const rings = this.config.circularLayout.rings;
     const radials = this.config.circularLayout.radialAvenues;
+    const maxRingIdx = rings.length - 1;
 
-    // Station police officers across key intersections AWAY from the player spawn point (Ring 4, Rad 6)
-    const spawnConfigs = [
-      { ringIdx: 3, radIdx: 1, name: 'Const. Bhati', patrolType: 'ring', dir: 1 },
-      { ringIdx: 3, radIdx: 2, name: 'Const. Sharma', patrolType: 'ring', dir: -1 },
-      { ringIdx: 3, radIdx: 3, name: 'Const. Gupta', patrolType: 'ring', dir: 1 },
-      { ringIdx: 2, radIdx: 0, name: 'SI Verma', patrolType: 'radial', spoke: 0 },
-      { ringIdx: 2, radIdx: 4, name: 'Const. Yadav', patrolType: 'radial', spoke: 4 },
-      { ringIdx: 1, radIdx: 1, name: 'ACP Malik', patrolType: 'ring', dir: -1 },
-      { ringIdx: 1, radIdx: 3, name: 'Insp. Chauhan', patrolType: 'radial', spoke: 3 },
-      { ringIdx: 4, radIdx: 2, name: 'Const. Singh', patrolType: 'ring', dir: 1 } // Opposite side of Ring 4
+    const baseNames = [
+      'Const. Bhati', 'Const. Sharma', 'Const. Gupta', 'SI Verma',
+      'Const. Yadav', 'ACP Malik', 'Insp. Chauhan', 'Const. Singh',
+      'Const. Meena', 'Insp. Rawat', 'Const. Tomar', 'SI Tyagi',
+      'Const. Tiwari', 'ACP Saxena', 'Insp. Rathore', 'Const. Joshi'
     ];
 
-    this.officers = spawnConfigs.map((cfg, idx) => {
-      const ring = rings[cfg.ringIdx];
+    // Scale count: Level 1: 8 officers, Level 2: 10, Level 3: 12, Level 4: 14...
+    const count = Math.min(18, 8 + (this.currentLevel - 1) * 2);
+
+    const configs = [];
+    for (let i = 0; i < count; i++) {
+      // Station on intermediate rings (never on the outermost ring where player starts)
+      const ringIdx = 1 + (i % Math.max(1, maxRingIdx - 1));
+      const radIdx = (i * 2 + 1) % radials.length;
+      configs.push({
+        ringIdx,
+        radIdx,
+        name: baseNames[i % baseNames.length] || `Officer #${i + 1}`,
+        patrolType: (i % 2 === 0) ? 'ring' : 'radial',
+        dir: (i % 3 === 0) ? -1 : 1,
+        spoke: radIdx
+      });
+    }
+
+    this.officers = configs.map((cfg, idx) => {
+      const ring = rings[cfg.ringIdx] || rings[1];
       const radial = radials[cfg.radIdx];
       const x = center.x + Math.cos(radial.angle) * ring.radius;
       const y = center.y + Math.sin(radial.angle) * ring.radius;
@@ -106,14 +121,18 @@ class PoliceAIManager {
     });
   }
 
-  update(deltaTime, player, onCatchProtester, isGameActive = true) {
+  update(deltaTime, player, onCatchProtester, isGameActive = true, allFlagsCollected = false) {
     this.animTime += deltaTime;
     if (this.graceTimer > 0) {
       this.graceTimer -= deltaTime;
     }
 
-    // Only allow detecting/chasing the player if game is active AND grace period has ended
-    const canDetectPlayer = isGameActive && (!this.graceTimer || this.graceTimer <= 0);
+    const center = (this.config.circularLayout && this.config.circularLayout.center) || { x: 1800, y: 1800 };
+    const playerInSanctuary = Math.hypot(player.x - center.x, player.y - center.y) < 230;
+
+    // Sanctuary Immunity: When all flags collected and player enters sanctuary, police cannot arrest!
+    const isPlayerSafe = !isGameActive || (this.graceTimer > 0) || (allFlagsCollected && playerInSanctuary);
+    const canDetectPlayer = !isPlayerSafe;
 
     this.officers.forEach(officer => {
       officer.bubbleTimer -= deltaTime;
@@ -121,8 +140,13 @@ class PoliceAIManager {
       const distToPlayer = Math.hypot(player.x - officer.x, player.y - officer.y);
       const hasLOS = canDetectPlayer && distToPlayer < officer.visionRange && this.roadNetwork.hasRoadLineOfSight(officer.x, officer.y, player.x, player.y);
 
-      // If game not active or in grace immunity, force officer to stay in patrol state
-      if (!canDetectPlayer && officer.state !== 'patrol') {
+      // If player entered sanctuary with all flags, force chasing police to break off
+      if (allFlagsCollected && playerInSanctuary && officer.state === 'chase') {
+        officer.state = 'lost';
+        officer.bubbleText = '⚠️ Sanctuary Zone! Cannot enter!';
+        officer.bubbleTimer = 2.5;
+        officer.currentPath = [];
+      } else if (!canDetectPlayer && officer.state !== 'patrol') {
         officer.state = 'patrol';
         officer.currentPath = [];
       }
@@ -157,7 +181,7 @@ class PoliceAIManager {
 
           this.followPath(officer, officer.chaseSpeed, deltaTime);
 
-          // Catch Condition (< 24px, out of grace, with line of sight)
+          // Catch Condition (< 24px, out of grace, with line of sight, and not in sanctuary)
           if (canDetectPlayer && distToPlayer < 24 && onCatchProtester) {
             onCatchProtester(officer);
           }
@@ -183,8 +207,13 @@ class PoliceAIManager {
       if (curNode) {
         const neighbors = this.roadNetwork.edges.get(curNode.id) || [];
         if (neighbors.length > 0) {
-          // Pick a random connected road node
-          const nextId = neighbors[Math.floor(Math.random() * neighbors.length)];
+          // Filter out center sanctuary nodes so police don't patrol inside the Gandhi Cap area
+          const validNeighbors = neighbors.filter(id => {
+            const n = this.roadNetwork.nodes[id];
+            return n && !n.isCenter && !n.isCenterAvenue;
+          });
+          const pool = validNeighbors.length > 0 ? validNeighbors : neighbors;
+          const nextId = pool[Math.floor(Math.random() * pool.length)];
           const nextNode = this.roadNetwork.nodes[nextId];
           officer.currentPath = [{ x: nextNode.x, y: nextNode.y }];
           officer.waypointIndex = 0;

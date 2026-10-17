@@ -16,36 +16,44 @@ class RoadNetwork {
   }
 
   // Build the complete graph for the Jantar Mantar layout
-  buildGraphForMap() {
+  buildGraphForMap(level = 1) {
+    this.currentLevel = Math.max(1, parseInt(level) || 1);
     this.currentMapId = 'jantar';
     this.nodes = [];
     this.edges.clear();
     this.segments = [];
     this.nodeIdCounter = 0;
-    this.buildJantarMantarNetwork();
+    this.buildJantarMantarNetwork(this.currentLevel);
   }
 
   // ========================================================
-  // MAP 1: Jantar Mantar (5 Concentric Rings & 8 Radial Spokes)
-  // Radial roads start strictly at Ring 0 (radius 240); center is monument sanctuary
+  // Jantar Mantar Progressive Multi-Level Network
+  // Level 1: 5 rings (up to 1400px)
+  // Each next level adds +1 outer ring (+320px) and expands the map!
   // ========================================================
-  buildJantarMantarNetwork() {
+  buildJantarMantarNetwork(level = 1) {
     const cx = this.center.x;
     const cy = this.center.y;
-    const rings = [240, 480, 760, 1080, 1400];
+
+    const baseRings = [240, 480, 760, 1080, 1400];
+    const rings = [...baseRings];
+    for (let l = 2; l <= level; l++) {
+      rings.push(1400 + (l - 1) * 320);
+    }
+    this.rings = rings;
+
     const radials = [
       -Math.PI / 2, -Math.PI / 4, 0, Math.PI / 4,
       Math.PI / 2, (3 * Math.PI) / 4, Math.PI, -(3 * Math.PI) / 4
     ];
     const numRadials = radials.length;
 
-    // 1. Register Segments: 5 Circular Ring Roads
+    // 1. Register Segments: Circular Ring Roads
     rings.forEach(r => {
       this.segments.push({ type: 'arc', cx, cy, radius: r, startAngle: 0, endAngle: Math.PI * 2, width: 90 });
     });
 
-    // 8 Radial Avenues from Ring 0 (240) to Ring 4 (1400)
-    // NEVER cut through the central monument (radius < 240)
+    // 8 Radial Avenues from Ring 0 (240) to outermost Ring
     radials.forEach(a => {
       this.segments.push({
         type: 'line',
@@ -54,6 +62,27 @@ class RoadNetwork {
         x2: cx + Math.cos(a) * (rings[rings.length - 1] + 30),
         y2: cy + Math.sin(a) * (rings[rings.length - 1] + 30),
         width: 90
+      });
+    });
+
+    // Central Sanctuary Circular Courtyard Plaza (Walkable area around the Gandhi Cap)
+    this.segments.push({
+      type: 'circle',
+      cx,
+      cy,
+      radius: 65,
+      width: 130
+    });
+
+    // 8 Grand Radial Walkways connecting Ring 0 into the Central Sanctuary Plaza
+    radials.forEach(a => {
+      this.segments.push({
+        type: 'line',
+        x1: cx,
+        y1: cy,
+        x2: cx + Math.cos(a) * rings[0],
+        y2: cy + Math.sin(a) * rings[0],
+        width: 65
       });
     });
 
@@ -71,7 +100,32 @@ class RoadNetwork {
       }
     }
 
-    // 3. Connect radially between rings (from Ring 0 outwards to Ring 4)
+    // 2b. Center Sanctuary Hub Node (Exact position of Gandhi Victory Cap)
+    const centerNode = this.createNode(cx, cy, true);
+    centerNode.ringIndex = -1;
+    centerNode.isCenter = true;
+    centerNode.isIntersection = true;
+    this.centerNode = centerNode;
+
+    // Connect Center Node to all 8 Ring 0 intersections via walkway nodes
+    for (let a = 0; a < numRadials; a++) {
+      const ring0Node = matrix[0][a];
+      const angle = radials[a];
+
+      const walk1 = this.createNode(cx + Math.cos(angle) * (rings[0] * 0.35), cy + Math.sin(angle) * (rings[0] * 0.35));
+      walk1.isCenterAvenue = true;
+      walk1.radialIndex = a;
+
+      const walk2 = this.createNode(cx + Math.cos(angle) * (rings[0] * 0.70), cy + Math.sin(angle) * (rings[0] * 0.70));
+      walk2.isCenterAvenue = true;
+      walk2.radialIndex = a;
+
+      this.connect(centerNode.id, walk1.id);
+      this.connect(walk1.id, walk2.id);
+      this.connect(walk2.id, ring0Node.id);
+    }
+
+    // 3. Connect radially between rings (from Ring 0 outwards to outermost Ring)
     for (let a = 0; a < numRadials; a++) {
       for (let r = 0; r < rings.length - 1; r++) {
         const n1 = matrix[r][a];
@@ -85,8 +139,11 @@ class RoadNetwork {
     }
 
     // 4. Connect circularly along each ring
-    // Fine arc divisions keep chords strictly within the asphalt corridor (sagitta < 3px)
     const arcDivisions = [3, 4, 6, 8, 11];
+    for (let i = 5; i < rings.length; i++) {
+      arcDivisions.push(11 + (i - 4) * 2);
+    }
+
     for (let r = 0; r < rings.length; r++) {
       const radius = rings[r];
       const div = arcDivisions[r] || 4;
@@ -113,14 +170,16 @@ class RoadNetwork {
     }
   }
 
-  // Get all nodes located on the outermost (last) ring (radius 1400)
+  // Get all nodes located on the outermost (last) ring
   getOuterRingNodes() {
-    return this.nodes.filter(n => n.ringIndex === 4);
+    const maxRingIdx = (this.rings ? this.rings.length : 5) - 1;
+    return this.nodes.filter(n => n.ringIndex === maxRingIdx);
   }
 
   // Get the 8 main spoke intersection nodes on the outermost (last) ring
   getOuterRingSpokeNodes() {
-    return this.nodes.filter(n => n.ringIndex === 4 && n.isIntersection);
+    const maxRingIdx = (this.rings ? this.rings.length : 5) - 1;
+    return this.nodes.filter(n => n.ringIndex === maxRingIdx && n.isIntersection);
   }
 
 
@@ -201,6 +260,9 @@ class RoadNetwork {
       if (seg.type === 'line') {
         const d = this.distToSegment(x, y, seg.x1, seg.y1, seg.x2, seg.y2);
         if (d <= halfW) return true;
+      } else if (seg.type === 'circle') {
+        const dToC = Math.hypot(x - seg.cx, y - seg.cy);
+        if (dToC <= seg.radius + padding) return true;
       } else if (seg.type === 'arc') {
         const dToC = Math.hypot(x - seg.cx, y - seg.cy);
         if (Math.abs(dToC - seg.radius) <= halfW) {
@@ -239,6 +301,19 @@ class RoadNetwork {
         const projX = seg.x1 + t * dx;
         const projY = seg.y1 + t * dy;
         const dist = Math.hypot(px - projX, py - projY);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestPoint = { x: projX, y: projY };
+        }
+      } else if (seg.type === 'circle') {
+        const dToC = Math.hypot(px - seg.cx, py - seg.cy);
+        if (dToC <= seg.radius) {
+          return { x: px, y: py };
+        }
+        const a = Math.atan2(py - seg.cy, px - seg.cx);
+        const projX = seg.cx + Math.cos(a) * seg.radius;
+        const projY = seg.cy + Math.sin(a) * seg.radius;
+        const dist = dToC - seg.radius;
         if (dist < bestDist) {
           bestDist = dist;
           bestPoint = { x: projX, y: projY };

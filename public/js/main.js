@@ -122,6 +122,25 @@ window.addEventListener('DOMContentLoaded', () => {
         osc.start();
         osc.stop(this.ctx.currentTime + 0.22);
       } catch (e) {}
+    },
+    playFanfare() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.08);
+          gain.gain.setValueAtTime(0.09, this.ctx.currentTime + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + idx * 0.08 + 0.4);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + idx * 0.08);
+          osc.stop(this.ctx.currentTime + idx * 0.08 + 0.4);
+        });
+      } catch (e) {}
     }
   };
 
@@ -152,6 +171,7 @@ window.addEventListener('DOMContentLoaded', () => {
   ];
 
   // Game Lifecycle State
+  let currentLevel = 1;
   let isGameStarted = false;
   let cinematicAngle = 0;
   let selectedCountryFlag = COUNTRY_FLAGS[0]; // Default India 🇮🇳
@@ -342,8 +362,78 @@ window.addEventListener('DOMContentLoaded', () => {
     AudioEngine.playCollect();
     hud.logAction(`🚩 Secured ${flag.name}! (${flagManager.getCollectedCount()}/${flagManager.getTotalCount()})`);
     if (flagManager.isAllCollected()) {
-      hud.logAction(`🌟 ALL 6 ${selectedCountryFlag.name} FLAGS SECURED! Head to Center Jantar Mantar!`);
+      AudioEngine.playFanfare();
+      hud.logAction(`✨ 🧢 ALL ${selectedCountryFlag.name} FLAGS SECURED! The Gandhi Cap is now UNLOCKED at Center! Go claim it!`);
+      // Automatically direct the protester towards the center Gandhi Cap!
+      const center = roadNetwork.center || config.circularLayout.center;
+      player.setDestination(center.x, center.y);
     }
+  };
+
+  // ========================================================
+  // LEVEL ADVANCEMENT & EXPANDING CIRCULAR MAP ENGINE
+  // ========================================================
+  hud.onContinueLevel = () => {
+    currentLevel++;
+    AudioEngine.playDeploy();
+
+    // 1. Calculate Expanded Dimensions for Next Level
+    const baseRings = [240, 480, 760, 1080, 1400];
+    const maxR = 1400 + (currentLevel - 1) * 320;
+    const worldSize = Math.max(3600, (maxR + 420) * 2);
+    const newCenter = { x: worldSize / 2, y: worldSize / 2 };
+
+    config.world.width = worldSize;
+    config.world.height = worldSize;
+    config.world.center = newCenter;
+    config.circularLayout.center = newCenter;
+
+    // Rings metadata in config
+    const rings = [...baseRings];
+    for (let l = 2; l <= currentLevel; l++) {
+      rings.push(1400 + (l - 1) * 320);
+    }
+    config.circularLayout.rings = rings.map((r, i) => ({ id: `ring-${i}`, radius: r, name: `Ring ${i}` }));
+
+    // 2. Rebuild Road Network with expanded rings
+    roadNetwork.center = newCenter;
+    roadNetwork.buildGraphForMap(currentLevel);
+
+    // 3. Update Camera and Minimap World Size
+    camera.setWorldSize(worldSize, worldSize);
+    minimap.setWorldSize(worldSize, worldSize);
+
+    // 4. Regenerate Flags for New Level (more flags distributed across rings)
+    flagManager.initFlags(currentLevel);
+    flagManager.setCountryFlag(selectedCountryFlag);
+
+    // 5. Scale Police AI for New Level
+    policeManager.initOfficers(currentLevel);
+
+    // 6. Spawn Protester Player on the NEW Outermost Ring
+    const outerRingNodes = roadNetwork.getOuterRingNodes();
+    const spawnNode = (outerRingNodes && outerRingNodes.length > 0)
+      ? outerRingNodes[Math.floor(Math.random() * outerRingNodes.length)]
+      : roadNetwork.nodes[roadNetwork.nodes.length - 1];
+
+    player.x = spawnNode.x;
+    player.y = spawnNode.y;
+    player.path = [];
+    player.isMoving = false;
+
+    // Safe grace immunity
+    policeManager.resetToPatrol(spawnNode);
+
+    // Smoothly focus camera on player on the new ring
+    camera.moveTo(player.x, player.y);
+    camera.setZoom(1.05);
+    camera.setFollow(player);
+
+    // Update HUD Level Badge
+    hud.setLevel(currentLevel);
+
+    hud.logAction(`🚀 LEVEL ${currentLevel} BEGUN! Map expanded to ${rings.length} rings with ${flagManager.getTotalCount()} flags!`);
+    hud.logAction('⚠️ Watch out for patrols on inner avenues! Collect all flags to reveal the Gandhi Cap!');
   };
 
   // ========================================================
@@ -394,7 +484,7 @@ window.addEventListener('DOMContentLoaded', () => {
       // Update Entities
       if (!hud.isGameOver) {
         flagManager.update(deltaTime, player, onFlagCollect);
-        policeManager.update(deltaTime, player, onCatchProtester, true);
+        policeManager.update(deltaTime, player, onCatchProtester, true, flagManager.isAllCollected());
       }
       hud.update(deltaTime);
     }
@@ -411,8 +501,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     camera.apply(ctx);
 
-    // 1. Draw Circular Road Network, Buildings, & Central Jantar Mantar
-    mapDrawer.draw(hud.viewMode, deltaTime, sunAngle);
+    // 1. Draw Circular Road Network, Buildings, Central Jantar Mantar, & Victory Gandhi Cap
+    mapDrawer.draw(hud.viewMode, deltaTime, sunAngle, flagManager.isAllCollected());
 
     // 2. Draw Flags
     flagManager.draw(ctx, hud.viewMode);

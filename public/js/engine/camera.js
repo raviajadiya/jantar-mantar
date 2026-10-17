@@ -31,6 +31,11 @@ class Camera2D {
     this.viewportHeight = h;
   }
 
+  setWorldSize(w, h) {
+    this.worldWidth = w;
+    this.worldHeight = h;
+  }
+
   setFollow(target) {
     this.followTarget = target;
   }

@@ -39,9 +39,14 @@ class CircularMapDrawer {
     this.shopNames = theme.shopNames;
   }
 
-  draw(mapMode = 'standard', deltaTime = 0.016, sunAngle = 1.1) {
+  draw(mapMode = 'standard', deltaTime = 0.016, sunAngle = 1.1, allFlagsCollected = false) {
     this.animTime += deltaTime;
     const ctx = this.ctx;
+
+    // Keep center synced with roadNetwork.center
+    if (this.roadNetwork && this.roadNetwork.center) {
+      this.center = this.roadNetwork.center;
+    }
 
     // 1. Draw City Building Blocks for Jantar Mantar
     this.drawJantarBlocks(mapMode);
@@ -52,8 +57,8 @@ class CircularMapDrawer {
     // 3. Draw Road Markings & Lane Dividers
     this.drawRoadMarkings(mapMode);
 
-    // 4. Draw Central Jantar Mantar Sanctuary Landmark
-    this.drawCentralJantarMantar(mapMode, sunAngle);
+    // 4. Draw Central Jantar Mantar Sanctuary Landmark & Victory Gandhi Cap
+    this.drawCentralJantarMantar(mapMode, sunAngle, allFlagsCollected);
   }
 
   // Draw Distinct Road Corridors directly from the active map's graph segments
@@ -77,6 +82,8 @@ class CircularMapDrawer {
         ctx.lineTo(seg.x2, seg.y2);
       } else if (seg.type === 'arc') {
         ctx.arc(seg.cx, seg.cy, seg.radius, seg.startAngle, seg.endAngle);
+      } else if (seg.type === 'circle') {
+        ctx.arc(seg.cx, seg.cy, seg.radius + 8, 0, Math.PI * 2);
       }
       ctx.stroke();
     });
@@ -94,6 +101,8 @@ class CircularMapDrawer {
         ctx.lineTo(seg.x2, seg.y2);
       } else if (seg.type === 'arc') {
         ctx.arc(seg.cx, seg.cy, seg.radius, seg.startAngle, seg.endAngle);
+      } else if (seg.type === 'circle') {
+        ctx.arc(seg.cx, seg.cy, seg.radius, 0, Math.PI * 2);
       }
       ctx.stroke();
     });
@@ -113,16 +122,22 @@ class CircularMapDrawer {
     ctx.setLineDash([18, 14]);
 
     segments.forEach(seg => {
-      ctx.beginPath();
       if (seg.type === 'line') {
-        ctx.moveTo(seg.x1, seg.y1);
-        ctx.lineTo(seg.x2, seg.y2);
+        const d1 = Math.hypot(seg.x1 - this.center.x, seg.y1 - this.center.y);
+        const d2 = Math.hypot(seg.x2 - this.center.x, seg.y2 - this.center.y);
+        if (Math.min(d1, d2) >= 200) {
+          ctx.beginPath();
+          ctx.moveTo(seg.x1, seg.y1);
+          ctx.lineTo(seg.x2, seg.y2);
+          ctx.stroke();
+        }
       } else if (seg.type === 'arc') {
         if (seg.radius > 260) {
+          ctx.beginPath();
           ctx.arc(seg.cx, seg.cy, seg.radius, seg.startAngle, seg.endAngle);
+          ctx.stroke();
         }
       }
-      ctx.stroke();
     });
 
     ctx.setLineDash([]);
@@ -132,9 +147,9 @@ class CircularMapDrawer {
   // ========================================================
   // CITY BUILDING BLOCKS GENERATOR (TAILORED PER ROUTE MAP)
   // ========================================================
-  // Jantar Mantar: 5-Ring & 8-Radial Curved Sectors
+  // Jantar Mantar: Progressive Multi-Ring Curved Sectors
   drawJantarBlocks(mapMode) {
-    const rings = [240, 480, 760, 1080, 1400];
+    const rings = (this.roadNetwork && this.roadNetwork.rings) || [240, 480, 760, 1080, 1400];
     const numRadials = 8;
     this.drawConcentricBlockGrid(rings, numRadials, 90, mapMode);
   }
@@ -189,14 +204,14 @@ class CircularMapDrawer {
   // ========================================================
   // MAP 1: Central Jantar Mantar Observatory Sanctuary
   // ========================================================
-  drawCentralJantarMantar(mapMode, sunAngle) {
+  drawCentralJantarMantar(mapMode, sunAngle, allFlagsCollected = false) {
     const ctx = this.ctx;
-    const jm = this.config.centerJantarMantar;
     const isBp = mapMode === 'blueprint';
     const c = this.center;
     const r = 240;
 
     ctx.save();
+    // 1. Sanctuary Outer Grass Base
     ctx.fillStyle = isBp ? '#0c4a6e' : this.c.jmGrass;
     ctx.strokeStyle = isBp ? '#38bdf8' : this.c.jmSandstoneDark;
     ctx.lineWidth = isBp ? 3 : 8;
@@ -213,17 +228,207 @@ class CircularMapDrawer {
     ctx.arc(c.x, c.y, r - 8, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Pathways
-    ctx.fillStyle = isBp ? '#0369a1' : '#d6c8b0';
-    ctx.fillRect(c.x - 14, c.y - r, 28, r * 2);
-    ctx.fillRect(c.x - r, c.y - 14, r * 2, 28);
+    // 2. 8 Grand Sandstone Radial Walkways connecting Ring 0 into the Center Plaza
+    const radials = [
+      -Math.PI / 2, -Math.PI / 4, 0, Math.PI / 4,
+      Math.PI / 2, (3 * Math.PI) / 4, Math.PI, -(3 * Math.PI) / 4
+    ];
 
-    // Monuments
-    this.drawSamratYantra(c.x, c.y, jm.samratYantra, isBp, sunAngle);
-    this.drawMisraYantra(jm.misraYantra.x, jm.misraYantra.y, isBp);
-    this.drawJaiPrakashYantra(jm.jaiPrakashYantra, isBp);
-    this.drawRamYantra(jm.ramYantra.tower1.x, jm.ramYantra.tower1.y, jm.ramYantra.tower1.radius, isBp);
-    this.drawCentralStage(jm.protestStage, isBp);
+    radials.forEach(a => {
+      ctx.save();
+      // Outer sandstone curb
+      ctx.strokeStyle = isBp ? '#0284c7' : '#c4b59d';
+      ctx.lineWidth = 56;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(c.x, c.y);
+      ctx.lineTo(c.x + Math.cos(a) * r, c.y + Math.sin(a) * r);
+      ctx.stroke();
+
+      // Paved walkway surface
+      ctx.strokeStyle = isBp ? '#0369a1' : '#ded5c5';
+      ctx.lineWidth = 44;
+      ctx.beginPath();
+      ctx.moveTo(c.x, c.y);
+      ctx.lineTo(c.x + Math.cos(a) * r, c.y + Math.sin(a) * r);
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    // 3. Grand Central Plaza Courtyard (Spacious circular paved terrace)
+    ctx.fillStyle = isBp ? '#0284c7' : '#c4b59d';
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 66, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = isBp ? '#075985' : '#eae2d3';
+    ctx.strokeStyle = isBp ? '#38bdf8' : '#bfa588';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 60, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Inner decorative compass rose ring
+    ctx.strokeStyle = isBp ? '#38bdf8' : 'rgba(180, 150, 120, 0.5)';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, 42, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 4. Historical Instruments in Garden Quadrants (Never blocking pathways)
+    const sy = { gnomonWidth: 24, gnomonLength: 90, quadrantRadius: 55 };
+    this.drawSamratYantra(c.x - 110, c.y - 110, sy, isBp, sunAngle);
+    this.drawMisraYantra(c.x + 110, c.y - 110, isBp);
+    this.drawJaiPrakashYantra({ bowl1: { x: c.x - 115, y: c.y + 110, radius: 22 }, bowl2: { x: c.x - 70, y: c.y + 125, radius: 22 } }, isBp);
+    this.drawRamYantra(c.x + 110, c.y + 110, 26, isBp);
+    this.drawCentralStage({ x: c.x - 45, y: c.y - 170, w: 90, h: 36 }, isBp);
+
+    // 5. Draw Central Victory Protest Gandhi Cap (ટોપી)
+    this.drawGandhiCap(c.x, c.y, allFlagsCollected);
+
+    ctx.restore();
+  }
+
+  // Draw Central Gandhi Protest Cap (સફેદ ગાંધી ટોપી 🧢)
+  drawGandhiCap(x, y, isUnlocked) {
+    const ctx = this.ctx;
+    ctx.save();
+    const t = this.animTime;
+
+    if (isUnlocked) {
+      // 1. Radiant spinning starburst rays
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(t * 0.7);
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.28)';
+      ctx.lineWidth = 3.5;
+      for (let i = 0; i < 12; i++) {
+        const ang = (i * Math.PI * 2) / 12;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(ang) * 95, Math.sin(ang) * 95);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // 2. Pulsing golden beacon ring
+      const pulseR = 36 + Math.sin(t * 5) * 8;
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.arc(x, y, pulseR, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+      ctx.beginPath();
+      ctx.arc(x, y, pulseR, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 3. Floating Gandhi Cap (with bounce)
+      const hoverY = y + Math.sin(t * 4) * 6;
+
+      ctx.save();
+      ctx.translate(x, hoverY);
+
+      // Shadow below floating cap
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+      ctx.beginPath();
+      ctx.ellipse(0, 16 - Math.sin(t * 4) * 3, 18, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw Iconic White Khadi Gandhi Cap
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 2.5;
+
+      ctx.beginPath();
+      ctx.moveTo(-22, 6);
+      ctx.quadraticCurveTo(-10, -18, 0, -22);
+      ctx.quadraticCurveTo(10, -18, 22, 6);
+      ctx.quadraticCurveTo(0, 10, -22, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Central Fold Line of Cap
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -22);
+      ctx.lineTo(0, 8);
+      ctx.stroke();
+
+      // Tricolor ribbon band at bottom of cap
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(-18, 4, 36, 2.5);
+      ctx.fillStyle = '#16a34a';
+      ctx.fillRect(-18, 6.5, 36, 2.5);
+
+      // Overhead animated arrow pointing to the Cap
+      const arrowY = -34 + Math.sin(t * 6) * 4;
+      ctx.fillStyle = '#facc15';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⬇', 0, arrowY);
+
+      // Claim Cap Victory Label
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.roundRect(-80, -62, 160, 22, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#fef08a';
+      ctx.font = 'bold 10.5px "Outfit", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('★ CLAIM CAP TO WIN! ★', 0, -47);
+
+      ctx.restore();
+    } else {
+      // Locked state: Cap sits on altar inside translucent barrier
+      ctx.save();
+      ctx.translate(x, y);
+
+      // Altar base
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.7)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Semi-transparent cap inside
+      ctx.globalAlpha = 0.45;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.moveTo(-16, 4);
+      ctx.quadraticCurveTo(-7, -12, 0, -15);
+      ctx.quadraticCurveTo(7, -12, 16, 4);
+      ctx.quadraticCurveTo(0, 7, -16, 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+
+      // Small Lock Tag
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.strokeStyle = '#f87171';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.roundRect(-66, -34, 132, 18, 5);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#fca5a5';
+      ctx.font = 'bold 9px "Outfit", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🔒 COLLECT ALL FLAGS FIRST', 0, -21);
+
+      ctx.restore();
+    }
 
     ctx.restore();
   }

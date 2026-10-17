@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jantar Mantar 2.0 - Circular Road Stealth Protest Game</title>
   <meta name="description" content="Clean 2D view: Circular road maze with central Jantar Mantar, flag collections, and police stealth AI.">
-  <link rel="stylesheet" href="css/main.css?v=4.5">
+  <link rel="stylesheet" href="css/main.css?v=5.0">
 </head>
 <body>
   <div id="game-container">
@@ -25,6 +25,8 @@
           <div class="flag-label">FLAGS COLLECTED</div>
           <div class="flag-count-number"><span id="flags-collected-count">0 / 6</span></div>
         </div>
+        <div class="hud-divider"></div>
+        <div class="level-indicator-badge" id="hud-level-badge">⭐ LEVEL 1</div>
         <div id="threat-status-badge" class="threat-badge stealth">
           🟢 SAFE
         </div>
@@ -162,17 +164,20 @@
 
     <!-- VICTORY MODAL -->
     <div id="victory-modal" class="modal-backdrop">
-      <div class="landmark-card-modal" style="border-color:#22c55e; text-align:center;">
-        <div style="font-size:3rem; margin-bottom:10px;">🏆🎉🚩</div>
-        <h2 class="modal-title" style="color:#22c55e;">VICTORY ACHIEVED!</h2>
-        <div style="color:#facc15; font-size:1.1rem; margin-top:4px; font-weight:700;">
-          All 6 Flags Planted at Center Jantar Mantar!
+      <div class="landmark-card-modal victory-card-modal" style="border-color:#22c55e; text-align:center;">
+        <div style="font-size:3.2rem; margin-bottom:8px;">🧢🏆🎉</div>
+        <h2 class="modal-title" id="victory-modal-title" style="color:#22c55e;">LEVEL 1 COMPLETED!</h2>
+        <div id="victory-modal-subtitle" style="color:#facc15; font-size:1.1rem; margin-top:4px; font-weight:700;">
+          All Flags Secured & Center Gandhi Cap Claimed! 🧢
         </div>
         <div class="modal-body" style="margin-top:16px;">
-          <p>You outmaneuvered Delhi Police patrols, navigated through the circular concentric roads, collected all protest flags, and safely united at the <strong>Vrihat Samrat Yantra</strong> sanctuary!</p>
+          <p id="victory-modal-desc">You grabbed the Victory Protest Cap at Jantar Mantar! Click <strong>Continue</strong> to expand the circular road map and collect more flags!</p>
         </div>
-        <div class="modal-footer" style="justify-content:center;">
-          <button id="btn-restart-victory" class="btn-teleport" style="background:#16a34a;">🔄 Play Again</button>
+        <div class="modal-footer" style="justify-content:center; gap:12px; flex-wrap:wrap;">
+          <button id="btn-continue-level" class="btn-teleport btn-continue-level" style="background:linear-gradient(135deg, #f59e0b, #ea580c); font-size:1rem; padding:11px 24px; font-weight:800; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.45); cursor:pointer;">
+            ▶ CONTINUE TO NEXT LEVEL (મોટો મેપ & વધુ ફ્લેગ્સ)
+          </button>
+          <button id="btn-restart-victory" class="btn-teleport" style="background:#334155; cursor:pointer;">🔄 Restart (Level 1)</button>
         </div>
       </div>
     </div>
@@ -196,17 +201,17 @@
   </div>
 
   <!-- Scripts in order of dependency (with cache-buster) -->
-  <script src="js/config.js?v=4.7"></script>
-  <script src="js/map/mapThemes.js?v=4.7"></script>
-  <script src="js/engine/camera.js?v=4.7"></script>
-  <script src="js/engine/input.js?v=4.7"></script>
-  <script src="js/map/roadNetwork.js?v=4.7"></script>
-  <script src="js/map/circularMapDraw.js?v=4.7"></script>
-  <script src="js/map/minimap.js?v=4.7"></script>
-  <script src="js/entities/flags.js?v=4.7"></script>
-  <script src="js/entities/player.js?v=4.7"></script>
-  <script src="js/entities/policeAI.js?v=4.7"></script>
-  <script src="js/ui/hud.js?v=4.7"></script>
-  <script src="js/main.js?v=4.7"></script>
+  <script src="js/config.js?v=5.1"></script>
+  <script src="js/map/mapThemes.js?v=5.1"></script>
+  <script src="js/engine/camera.js?v=5.1"></script>
+  <script src="js/engine/input.js?v=5.1"></script>
+  <script src="js/map/roadNetwork.js?v=5.1"></script>
+  <script src="js/map/circularMapDraw.js?v=5.1"></script>
+  <script src="js/map/minimap.js?v=5.1"></script>
+  <script src="js/entities/flags.js?v=5.1"></script>
+  <script src="js/entities/player.js?v=5.1"></script>
+  <script src="js/entities/policeAI.js?v=5.1"></script>
+  <script src="js/ui/hud.js?v=5.1"></script>
+  <script src="js/main.js?v=5.1"></script>
 </body>
 </html>
