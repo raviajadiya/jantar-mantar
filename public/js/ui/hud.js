@@ -49,12 +49,18 @@ class GameHUD {
     }
 
     // Modal Play Again / Restart buttons
-    if (this.btnRestartVictory) this.btnRestartVictory.addEventListener('click', () => location.reload());
+    if (this.btnRestartVictory) {
+      this.btnRestartVictory.addEventListener('click', () => {
+        if (window.CelebrationBlast) window.CelebrationBlast.stop();
+        location.reload();
+      });
+    }
     if (this.btnRestartArrest) this.btnRestartArrest.addEventListener('click', () => location.reload());
 
     // Continue to Next Level Button
     if (this.btnContinueLevel) {
       this.btnContinueLevel.addEventListener('click', () => {
+        if (window.CelebrationBlast) window.CelebrationBlast.stop();
         if (this.onContinueLevel) {
           this.onContinueLevel();
         }
@@ -65,6 +71,7 @@ class GameHUD {
   setLevel(lvl) {
     this.level = lvl;
     this.isGameOver = false;
+    if (window.CelebrationBlast) window.CelebrationBlast.stop();
     if (this.victoryModal) this.victoryModal.classList.remove('active');
     if (this.levelBadgeEl) this.levelBadgeEl.textContent = `⭐ LEVEL ${lvl}`;
   }
@@ -122,6 +129,18 @@ class GameHUD {
 
   triggerVictory() {
     this.isGameOver = true;
+
+    // 1. Play Victory Sounds (Confetti Popper Blast Pop + Fanfare)
+    if (window.AudioEngine) {
+      if (window.AudioEngine.playBlastPop) window.AudioEngine.playBlastPop();
+      if (window.AudioEngine.playFanfare) window.AudioEngine.playFanfare();
+    }
+
+    // 2. Trigger Paper Card & Golden Star Celebration Blast Animation
+    if (window.CelebrationBlast && window.CelebrationBlast.blast) {
+      window.CelebrationBlast.blast();
+    }
+
     if (this.victoryModal) {
       const total = this.flagManager.getTotalCount();
       const nextLevel = this.level + 1;
@@ -151,6 +170,12 @@ class GameHUD {
 
   triggerArrest(officer) {
     this.isGameOver = true;
+
+    // Play Authentic Police Siren & Whistle Audio
+    if (window.AudioEngine && window.AudioEngine.playPoliceSiren) {
+      window.AudioEngine.playPoliceSiren();
+    }
+
     if (this.arrestModal) {
       const nameEl = document.getElementById('arresting-officer-name');
       if (nameEl) nameEl.textContent = (officer && officer.name) || 'Delhi Police';

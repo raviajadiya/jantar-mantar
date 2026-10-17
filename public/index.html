@@ -164,8 +164,11 @@
 
     <!-- VICTORY MODAL -->
     <div id="victory-modal" class="modal-backdrop">
+      <!-- Fullscreen Celebratory Confetti & Paper Card Blast Canvas -->
+      <canvas id="victory-confetti-canvas"></canvas>
+
       <div class="landmark-card-modal victory-card-modal" style="border-color:#22c55e; text-align:center;">
-        <div style="font-size:3.2rem; margin-bottom:8px;">🧢🏆🎉</div>
+        <div class="victory-icon-blast">🧢🏆🎉</div>
         <h2 class="modal-title" id="victory-modal-title" style="color:#22c55e;">LEVEL 1 COMPLETED!</h2>
         <div id="victory-modal-subtitle" style="color:#facc15; font-size:1.1rem; margin-top:4px; font-weight:700;">
           All Flags Secured & Center Gandhi Cap Claimed! 🧢
@@ -184,8 +187,8 @@
 
     <!-- ARREST / DETAINED MODAL -->
     <div id="arrest-modal" class="modal-backdrop">
-      <div class="landmark-card-modal" style="border-color:#ef4444; text-align:center;">
-        <div style="font-size:3rem; margin-bottom:10px;">🚨👮🚔</div>
+      <div class="landmark-card-modal arrest-card-modal" style="border-color:#ef4444; text-align:center;">
+        <div class="arrest-police-icon">🚨👮🚔</div>
         <h2 class="modal-title" style="color:#ef4444;">PROTESTER DETAINED!</h2>
         <div style="color:#f87171; font-size:1.05rem; margin-top:4px; font-weight:700;">
           Caught by <span id="arresting-officer-name">Delhi Police</span>!
@@ -201,17 +204,18 @@
   </div>
 
   <!-- Scripts in order of dependency (with cache-buster) -->
-  <script src="js/config.js?v=5.2"></script>
-  <script src="js/map/mapThemes.js?v=5.2"></script>
-  <script src="js/engine/camera.js?v=5.2"></script>
-  <script src="js/engine/input.js?v=5.2"></script>
-  <script src="js/map/roadNetwork.js?v=5.2"></script>
-  <script src="js/map/circularMapDraw.js?v=5.2"></script>
-  <script src="js/map/minimap.js?v=5.2"></script>
-  <script src="js/entities/flags.js?v=5.2"></script>
-  <script src="js/entities/player.js?v=5.2"></script>
-  <script src="js/entities/policeAI.js?v=5.2"></script>
-  <script src="js/ui/hud.js?v=5.2"></script>
-  <script src="js/main.js?v=5.2"></script>
+  <script src="js/config.js?v=5.3"></script>
+  <script src="js/map/mapThemes.js?v=5.3"></script>
+  <script src="js/engine/camera.js?v=5.3"></script>
+  <script src="js/engine/input.js?v=5.3"></script>
+  <script src="js/map/roadNetwork.js?v=5.3"></script>
+  <script src="js/map/circularMapDraw.js?v=5.3"></script>
+  <script src="js/map/minimap.js?v=5.3"></script>
+  <script src="js/entities/flags.js?v=5.3"></script>
+  <script src="js/entities/player.js?v=5.3"></script>
+  <script src="js/entities/policeAI.js?v=5.3"></script>
+  <script src="js/ui/celebrationBlast.js?v=5.3"></script>
+  <script src="js/ui/hud.js?v=5.3"></script>
+  <script src="js/main.js?v=5.3"></script>
 </body>
 </html>

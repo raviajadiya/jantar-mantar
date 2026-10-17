@@ -141,8 +141,128 @@ window.addEventListener('DOMContentLoaded', () => {
           osc.stop(this.ctx.currentTime + idx * 0.08 + 0.4);
         });
       } catch (e) {}
+    },
+    // Realistic Authentic Delhi Police Siren Wail + Whistle + Handcuff Snap
+    playPoliceSiren() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // 1. Sharp Police Whistle Chirps (high metal vibration)
+        const whistleFreqs = [2400, 2750];
+        whistleFreqs.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now);
+          osc.frequency.setValueAtTime(freq + 50, now + 0.06);
+          osc.frequency.setValueAtTime(freq, now + 0.12);
+          osc.frequency.setValueAtTime(freq + 65, now + 0.18);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        });
+
+        // 2. Handcuffs Metallic Latch Click
+        const clickOsc = this.ctx.createOscillator();
+        const clickGain = this.ctx.createGain();
+        clickOsc.type = 'square';
+        clickOsc.frequency.setValueAtTime(180, now + 0.04);
+        clickOsc.frequency.exponentialRampToValueAtTime(45, now + 0.12);
+        clickGain.gain.setValueAtTime(0.2, now + 0.04);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        clickOsc.connect(clickGain);
+        clickGain.connect(this.ctx.destination);
+        clickOsc.start(now + 0.04);
+        clickOsc.stop(now + 0.12);
+
+        // 3. Piercing Two-Tone Emergency Police Vehicle Siren (WEE-WOO)
+        const s1 = this.ctx.createOscillator();
+        const s2 = this.ctx.createOscillator();
+        const sirenGain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+
+        s1.type = 'sawtooth';
+        s2.type = 'triangle';
+
+        // Frequency sweep Cycle 1 & 2
+        s1.frequency.setValueAtTime(640, now + 0.1);
+        s1.frequency.exponentialRampToValueAtTime(1150, now + 0.45);
+        s1.frequency.exponentialRampToValueAtTime(660, now + 0.75);
+        s1.frequency.exponentialRampToValueAtTime(1180, now + 1.1);
+        s1.frequency.exponentialRampToValueAtTime(620, now + 1.45);
+
+        s2.frequency.setValueAtTime(648, now + 0.1);
+        s2.frequency.exponentialRampToValueAtTime(1162, now + 0.45);
+        s2.frequency.exponentialRampToValueAtTime(668, now + 0.75);
+        s2.frequency.exponentialRampToValueAtTime(1194, now + 1.1);
+        s2.frequency.exponentialRampToValueAtTime(628, now + 1.45);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(920, now);
+        filter.Q.setValueAtTime(2.2, now);
+
+        sirenGain.gain.setValueAtTime(0.001, now + 0.1);
+        sirenGain.gain.exponentialRampToValueAtTime(0.2, now + 0.28);
+        sirenGain.gain.setValueAtTime(0.2, now + 1.15);
+        sirenGain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+
+        s1.connect(filter);
+        s2.connect(filter);
+        filter.connect(sirenGain);
+        sirenGain.connect(this.ctx.destination);
+
+        s1.start(now + 0.1);
+        s2.start(now + 0.1);
+        s1.stop(now + 1.5);
+        s2.stop(now + 1.5);
+      } catch (e) {
+        console.warn('AudioEngine error:', e);
+      }
+    },
+    // Celebratory Party Popper Cannon Blast
+    playBlastPop() {
+      try {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // Cannon Thump / Popper Pop
+        const pOsc = this.ctx.createOscillator();
+        const pGain = this.ctx.createGain();
+        pOsc.type = 'sine';
+        pOsc.frequency.setValueAtTime(320, now);
+        pOsc.frequency.exponentialRampToValueAtTime(50, now + 0.22);
+        pGain.gain.setValueAtTime(0.3, now);
+        pGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        pOsc.connect(pGain);
+        pGain.connect(this.ctx.destination);
+        pOsc.start(now);
+        pOsc.stop(now + 0.25);
+
+        // Crackle & Sparkles
+        [880, 1174, 1396, 1760, 2093].forEach((f, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, now + 0.04 + i * 0.03);
+          gain.gain.setValueAtTime(0.08, now + 0.04 + i * 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35 + i * 0.04);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + 0.04 + i * 0.03);
+          osc.stop(now + 0.35 + i * 0.04);
+        });
+      } catch (e) {}
     }
   };
+
+  // Expose AudioEngine globally for HUD and callbacks
+  window.AudioEngine = AudioEngine;
 
   // ========================================================
   // COUNTRY FACTIONS DATABASE (With Tactical Perks)
@@ -353,6 +473,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Police Catch Callback
   const onCatchProtester = (officer) => {
     if (!isGameStarted) return;
+    AudioEngine.playPoliceSiren();
     hud.triggerArrest(officer);
   };
 
