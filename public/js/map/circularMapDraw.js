@@ -15,27 +15,20 @@ class CircularMapDrawer {
   }
 
   setMapTheme(themeId) {
-    this.currentMapId = themeId || 'jantar';
+    this.currentMapId = themeId || 'jantar_dark';
     const themes = window.MAP_THEMES || {};
-    const theme = themes[this.currentMapId] || themes['jantar'] || {
-      id: 'jantar',
-      bgCanvas: '#e3dfd3',
-      roadAsphalt: '#3d444d',
-      curbColor: '#bfb5a2',
-      roadMarking: '#f4ede2',
-      centerGrass: '#4a7c3f',
-      centerBorder: '#932d19',
-      centerAura: 'rgba(245, 158, 11, 0.45)',
-      blockColors: ['#eae2d3', '#f1f5f9', '#fed7aa', '#e2e8f0', '#fef08a', '#e2d9cc'],
-      shopNames: ['RAJU DHABA', 'SHIV DHABA', 'AGARWAL SWEETS', 'KUMAR MOBILE']
-    };
+    const theme = themes[this.currentMapId] || themes['jantar'] || themes['jantar_dark'];
 
     this.theme = theme;
     this.c.asphalt = theme.roadAsphalt;
     this.c.footpath = theme.curbColor;
     this.c.roadMarking = theme.roadMarking;
+    this.c.jmGrass = theme.centerGrass;
+    this.c.jmSandstoneDark = theme.centerBorder;
     this.config.world.bgColor = theme.bgCanvas;
     this.blockColors = theme.blockColors;
+    this.blockBorder = theme.blockBorder || (theme.mode === 'light' ? '#94a3b8' : '#2d3d54');
+    this.blockShadow = theme.blockShadow || (theme.mode === 'light' ? 'rgba(0, 0, 0, 0.22)' : 'rgba(0, 0, 0, 0.45)');
     this.shopNames = theme.shopNames;
   }
 
@@ -150,31 +143,41 @@ class CircularMapDrawer {
   // Jantar Mantar: Progressive Multi-Ring Curved Sectors
   drawJantarBlocks(mapMode) {
     const rings = (this.roadNetwork && this.roadNetwork.rings) || [240, 480, 760, 1080, 1400];
-    const numRadials = 8;
-    this.drawConcentricBlockGrid(rings, numRadials, 90, mapMode);
+    this.drawConcentricBlockGrid(rings, 90, mapMode);
   }
 
   // Generic circular concentric block grid drawer
-  drawConcentricBlockGrid(rings, numRadials, roadW, mapMode, isColonnade = false) {
+  drawConcentricBlockGrid(rings, roadW, mapMode, isColonnade = false) {
     const ctx = this.ctx;
     const isBp = mapMode === 'blueprint';
     const halfW = roadW / 2;
     const blockColors = this.blockColors || ['#eae2d3', '#f1f5f9', '#fed7aa'];
-    const shopNames = this.shopNames || ['DELHI STORE'];
 
     for (let rIdx = 0; rIdx < rings.length - 1; rIdx++) {
       const innerR = rings[rIdx] + halfW + 6;
       const outerR = rings[rIdx + 1] - halfW - 6;
       if (outerR <= innerR) continue;
 
-      for (let radIdx = 0; radIdx < numRadials; radIdx++) {
-        const a1 = (radIdx * Math.PI * 2) / numRadials + 0.06;
-        const a2 = ((radIdx + 1) * Math.PI * 2) / numRadials - 0.06;
+      // Inner rings (0 and 1) have 8 sectors
+      // Outer rings (2 and above) have 16 sectors (halved by intermediate radial avenues)
+      const numSectors = (rIdx < 2) ? 8 : 16;
+      const angleStep = (Math.PI * 2) / numSectors;
+
+      // Angular margin to leave precise road corridor clearance (road width 90 + curbs)
+      const angleMargin = Math.max(0.038, 52 / outerR);
+
+      for (let sIdx = 0; sIdx < numSectors; sIdx++) {
+        // Aligned with avenues starting from North (-Math.PI / 2)
+        const startRad = -Math.PI / 2 + sIdx * angleStep;
+        const endRad = startRad + angleStep;
+        const a1 = startRad + angleMargin;
+        const a2 = endRad - angleMargin;
+        if (a2 <= a1) continue;
 
         ctx.save();
         // Shadow
         if (!isBp) {
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+          ctx.fillStyle = this.blockShadow || 'rgba(0, 0, 0, 0.45)';
           ctx.beginPath();
           ctx.arc(this.center.x + 8, this.center.y + 8, outerR, a1, a2);
           ctx.arc(this.center.x + 8, this.center.y + 8, innerR, a2, a1, true);
@@ -183,9 +186,9 @@ class CircularMapDrawer {
         }
 
         // Block Base
-        ctx.fillStyle = isBp ? '#0c4a6e' : blockColors[(rIdx * 3 + radIdx) % blockColors.length];
-        ctx.strokeStyle = isBp ? '#38bdf8' : (isColonnade ? '#cbd5e1' : '#94a3b8');
-        ctx.lineWidth = 2.5;
+        ctx.fillStyle = isBp ? '#0c4a6e' : blockColors[(rIdx * 3 + sIdx) % blockColors.length];
+        ctx.strokeStyle = isBp ? '#38bdf8' : (isColonnade ? '#475569' : (this.blockBorder || '#2d3d54'));
+        ctx.lineWidth = 2.2;
 
         ctx.beginPath();
         ctx.arc(this.center.x, this.center.y, outerR, a1, a2);
@@ -284,13 +287,13 @@ class CircularMapDrawer {
     this.drawRamYantra(c.x + 110, c.y + 110, 26, isBp);
     this.drawCentralStage({ x: c.x - 45, y: c.y - 170, w: 90, h: 36 }, isBp);
 
-    // 5. Draw Central Victory Protest Gandhi Cap (ટોપી)
+    // 5. Draw Central Victory Protest Gandhi Cap
     this.drawGandhiCap(c.x, c.y, allFlagsCollected);
 
     ctx.restore();
   }
 
-  // Draw Central Gandhi Protest Cap (સફેદ ગાંધી ટોપી 🧢)
+  // Draw Central Gandhi Protest Cap (White Gandhi Cap 🧢)
   drawGandhiCap(x, y, isUnlocked) {
     const ctx = this.ctx;
     ctx.save();

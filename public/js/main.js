@@ -329,6 +329,13 @@ window.addEventListener('DOMContentLoaded', () => {
   const btnZoomToggle = document.getElementById('btn-zoom-toggle');
   const zoomDropdownMenu = document.getElementById('zoom-dropdown-menu');
 
+  // Theme Elements (Dark vs Light Mode)
+  const btnThemeToggle = document.getElementById('btn-theme-toggle');
+  const btnThemeIcon = document.getElementById('btn-theme-icon');
+  const btnThemeText = document.getElementById('btn-theme-text');
+  const btnThemeDark = document.getElementById('btn-theme-dark');
+  const btnThemeLight = document.getElementById('btn-theme-light');
+
   // Update Game Card Preview on Nation / Flag Change
   function updateGameCardPreview() {
     if (bannerFighterFlag) bannerFighterFlag.textContent = selectedCountryFlag.emoji;
@@ -379,21 +386,27 @@ window.addEventListener('DOMContentLoaded', () => {
   // Start Game Trigger
   function startGame() {
     AudioEngine.playDeploy();
+    hud.isGameOver = false;
+    if (hud.arrestModal) hud.arrestModal.classList.remove('active');
+    if (hud.victoryModal) hud.victoryModal.classList.remove('active');
+
     const rawName = playerNameInput ? playerNameInput.value.trim() : '';
     const finalName = rawName || 'Aam Aadmi';
 
     // 1. Start from a point on the LAST (outermost) ring (Ring 4, radius 1400)
     const outerRingNodes = roadNetwork.getOuterRingNodes();
+    const center = (roadNetwork && roadNetwork.center) || (config.circularLayout && config.circularLayout.center) || { x: 1800, y: 1800 };
+    const defaultSpawn = { x: center.x + 1400, y: center.y };
     const spawnNode = (outerRingNodes && outerRingNodes.length > 0)
       ? outerRingNodes[Math.floor(Math.random() * outerRingNodes.length)]
-      : initialSpawn;
+      : defaultSpawn;
 
     player.x = spawnNode.x;
     player.y = spawnNode.y;
     player.path = [];
     player.isMoving = false;
 
-    // Apply Identity & Flag to Player Entity AND all 6 map collection flags
+    // Apply Identity & Flag to Player Entity AND all map collection flags
     player.setNameAndFlag(finalName, selectedCountryFlag);
     flagManager.setCountryFlag(selectedCountryFlag);
 
@@ -417,18 +430,10 @@ window.addEventListener('DOMContentLoaded', () => {
     if (hudTopBar) hudTopBar.classList.remove('hud-hidden');
     if (hudZoomBar) hudZoomBar.classList.remove('hud-hidden');
 
-    const mobileControls = document.getElementById('mobile-controls-container');
-    if (mobileControls) {
-      if (window.innerWidth <= 768) {
-        mobileControls.style.display = 'none';
-      } else {
-        mobileControls.classList.remove('hud-hidden');
-      }
-    }
 
-    // Smooth Camera Transition to Player on the Last Ring (comfortably zoomed out on mobile)
+    // Smooth Camera Transition to Player on the Last Ring (comfortably zoomed for clear view)
     camera.moveTo(player.x, player.y);
-    camera.setZoom(window.innerWidth <= 768 ? 0.36 : 1.10);
+    camera.setZoom(window.innerWidth <= 768 ? 0.42 : 0.72);
     camera.setFollow(player);
 
     hud.logAction(`✊ Hero ${player.name} deployed on the Perimeter Ring representing ${selectedCountryFlag.name} ${selectedCountryFlag.emoji}!`);
@@ -512,10 +517,71 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Initialize Jantar Mantar Map on load
+  // ========================================================
+  // THEME SWITCHER (Dark Midnight vs Light White Sandstone)
+  // ========================================================
+  let currentThemeMode = 'dark';
+  try {
+    const saved = localStorage.getItem('jm_theme_mode');
+    if (saved === 'light' || saved === 'dark') {
+      currentThemeMode = saved;
+    }
+  } catch (e) {}
+
+  function switchTheme(mode, playSound = false) {
+    currentThemeMode = (mode === 'light') ? 'light' : 'dark';
+    const themeKey = (currentThemeMode === 'light') ? 'jantar_light' : 'jantar_dark';
+    const themeObj = (window.MAP_THEMES && window.MAP_THEMES[themeKey]) || (window.MAP_THEMES && window.MAP_THEMES.jantar);
+
+    mapDrawer.setMapTheme(themeKey);
+    minimap.setMapTheme(themeObj);
+
+    // Update Top-Left HUD Button
+    if (btnThemeIcon) btnThemeIcon.textContent = (currentThemeMode === 'light') ? '☀️' : '🌙';
+    if (btnThemeText) btnThemeText.textContent = (currentThemeMode === 'light') ? 'LIGHT' : 'DARK';
+
+    // Update Start Modal Pills
+    if (btnThemeDark) btnThemeDark.classList.toggle('active', currentThemeMode === 'dark');
+    if (btnThemeLight) btnThemeLight.classList.toggle('active', currentThemeMode === 'light');
+
+    // Update Document class for styling
+    if (currentThemeMode === 'light') {
+      document.body.classList.add('theme-light');
+    } else {
+      document.body.classList.remove('theme-light');
+    }
+
+    try {
+      localStorage.setItem('jm_theme_mode', currentThemeMode);
+    } catch (e) {}
+
+    if (playSound && window.AudioEngine) {
+      AudioEngine.playSelect();
+    }
+  }
+
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const next = (currentThemeMode === 'dark') ? 'light' : 'dark';
+      switchTheme(next, true);
+    });
+  }
+
+  if (btnThemeDark) {
+    btnThemeDark.addEventListener('click', () => {
+      switchTheme('dark', true);
+    });
+  }
+
+  if (btnThemeLight) {
+    btnThemeLight.addEventListener('click', () => {
+      switchTheme('light', true);
+    });
+  }
+
+  // Initialize Jantar Mantar Map on load with saved theme
   roadNetwork.buildGraphForMap('jantar');
-  mapDrawer.setMapTheme('jantar');
-  minimap.setMapTheme(window.MAP_THEMES ? window.MAP_THEMES.jantar : null);
+  switchTheme(currentThemeMode, false);
 
   // ========================================================
   // MINIMAP & CANVAS INTERACTION
@@ -633,94 +699,170 @@ window.addEventListener('DOMContentLoaded', () => {
   };
 
   // ========================================================
+  // IN-MEMORY RESTART GAME (Instant without page reload)
+  // ========================================================
+  hud.onRestartGame = () => {
+    hud.isGameOver = false;
+    if (hud.arrestModal) hud.arrestModal.classList.remove('active');
+    if (hud.victoryModal) hud.victoryModal.classList.remove('active');
+
+    // Spawn on outer ring
+    const outerRingNodes = roadNetwork.getOuterRingNodes();
+    const center = (roadNetwork && roadNetwork.center) || (config.circularLayout && config.circularLayout.center) || { x: 1800, y: 1800 };
+    const defaultSpawn = { x: center.x + 1400, y: center.y };
+    const spawnNode = (outerRingNodes && outerRingNodes.length > 0)
+      ? outerRingNodes[Math.floor(Math.random() * outerRingNodes.length)]
+      : defaultSpawn;
+
+    player.x = spawnNode.x;
+    player.y = spawnNode.y;
+    player.path = [];
+    player.isMoving = false;
+
+    // Reset flags for current level
+    flagManager.initFlags(currentLevel);
+    flagManager.setCountryFlag(selectedCountryFlag);
+
+    // Reset police officers with 4s safe immunity
+    policeManager.resetToPatrol(spawnNode);
+
+    // Smoothly focus camera on player
+    camera.isDragging = false;
+    camera.moveTo(player.x, player.y);
+    camera.setFollow(player);
+    camera.setZoom(window.innerWidth <= 768 ? 0.36 : 1.10);
+
+    // Keep game active and responsive
+    isGameStarted = true;
+    AudioEngine.playDeploy();
+
+    hud.logAction(`🔄 Game Restarted! Level ${currentLevel} ready - Evade police & collect all flags!`);
+  };
+
+  // ========================================================
+  // GO TO HOME SCREEN (Clean modal return without freeze)
+  // ========================================================
+  hud.onGoHome = () => {
+    hud.isGameOver = false;
+    isGameStarted = false;
+    if (hud.arrestModal) hud.arrestModal.classList.remove('active');
+    if (hud.victoryModal) hud.victoryModal.classList.remove('active');
+    if (window.CelebrationBlast) window.CelebrationBlast.stop();
+
+    // Hide in-game HUDs
+    if (hudHelpBar) hudHelpBar.classList.add('hud-hidden');
+    if (hudTopBar) hudTopBar.classList.add('hud-hidden');
+    if (hudZoomBar) hudZoomBar.classList.add('hud-hidden');
+
+
+    // Reset back to Level 1
+    currentLevel = 1;
+    hud.setLevel(1);
+    flagManager.initFlags(1);
+    flagManager.setCountryFlag(selectedCountryFlag);
+    policeManager.resetToPatrol();
+
+    // Show Start Screen modal cleanly
+    if (startModal) {
+      startModal.classList.add('active');
+    }
+
+    hud.logAction('🏠 Returned to Home Screen');
+  };
+
+  // ========================================================
   // MAIN RENDER LOOP (Realtime Map Motion)
   // ========================================================
   let lastTime = performance.now();
   let sunAngle = 0;
 
   function render(now) {
-    const deltaTime = Math.min(0.08, (now - lastTime) / 1000);
-    lastTime = now;
-    sunAngle += deltaTime * 0.15;
+    try {
+      const deltaTime = Math.min(0.08, (now - lastTime) / 1000);
+      lastTime = now;
+      sunAngle += deltaTime * 0.15;
 
-    camera.resize(canvas.width, canvas.height);
+      camera.resize(canvas.width, canvas.height);
 
-    if (!isGameStarted) {
-      // Real-time cinematic camera glide across the circular roads & Jantar Mantar
-      cinematicAngle += deltaTime * 0.16;
-      const radius = 640;
-      const camX = centerPos.x + Math.cos(cinematicAngle) * radius;
-      const camY = centerPos.y + Math.sin(cinematicAngle * 0.8) * (radius * 0.65);
-      camera.moveTo(camX, camY);
-      camera.setZoom(window.innerWidth <= 768 ? 0.36 : 0.88);
+      if (!isGameStarted) {
+        // Real-time cinematic camera glide across the circular roads & Jantar Mantar
+        cinematicAngle += deltaTime * 0.16;
+        const radius = 640;
+        const camX = centerPos.x + Math.cos(cinematicAngle) * radius;
+        const camY = centerPos.y + Math.sin(cinematicAngle * 0.8) * (radius * 0.65);
+        camera.moveTo(camX, camY);
+        camera.setZoom(window.innerWidth <= 768 ? 0.36 : 0.88);
 
-      // AI updates in background for live real-time simulation (game not started: never detect or chase player)
-      policeManager.update(deltaTime, player, null, false);
-    } else {
-      input.setGameMode(hud.gameMode);
-
-      // Manual Keyboard (WASD / Arrows) Movement & Mobile Virtual Joystick
-      let kx = 0;
-      let ky = 0;
-      if (input.keys['w'] || input.keys['arrowup']) ky -= 1;
-      if (input.keys['s'] || input.keys['arrowdown']) ky += 1;
-      if (input.keys['a'] || input.keys['arrowleft']) kx -= 1;
-      if (input.keys['d'] || input.keys['arrowright']) kx += 1;
-
-      if (input.joystick && input.joystick.active) {
-        kx += input.joystick.x;
-        ky += input.joystick.y;
-      }
-
-      const isSprinting = input.mouse.rightDown || (input.isTouchSprinting === true);
-
-      if (hud.gameMode === 'walk') {
-        if (kx !== 0 || ky !== 0) {
-          player.manualMovingThisFrame = true;
-          player.manualMove(kx, ky, deltaTime, isSprinting);
-        }
-        player.update(deltaTime, isSprinting);
+        // AI updates in background for live real-time simulation (game not started: never detect or chase player)
+        policeManager.update(deltaTime, player, null, false);
       } else {
-        input.update(deltaTime);
+        input.setGameMode(hud.gameMode);
+
+        // Manual Keyboard (WASD / Arrows) Movement
+        let kx = 0;
+        let ky = 0;
+        if (input.keys['w'] || input.keys['arrowup']) ky -= 1;
+        if (input.keys['s'] || input.keys['arrowdown']) ky -= 1;
+        if (input.keys['a'] || input.keys['arrowleft']) kx -= 1;
+        if (input.keys['d'] || input.keys['arrowright']) kx += 1;
+
+        if (input.joystick && input.joystick.active) {
+          kx += input.joystick.x;
+          ky += input.joystick.y;
+        }
+
+        const isSprinting = input.mouse.rightDown || (input.isTouchSprinting === true);
+
+        if (hud.gameMode === 'walk') {
+          if (kx !== 0 || ky !== 0) {
+            player.manualMovingThisFrame = true;
+            player.manualMove(kx, ky, deltaTime, isSprinting);
+          }
+          player.update(deltaTime, isSprinting);
+        } else {
+          input.update(deltaTime);
+        }
+
+        // Update Entities
+        if (!hud.isGameOver) {
+          flagManager.update(deltaTime, player, onFlagCollect);
+          policeManager.update(deltaTime, player, onCatchProtester, true, flagManager.isAllCollected());
+        }
+        hud.update(deltaTime);
       }
 
-      // Update Entities
-      if (!hud.isGameOver) {
-        flagManager.update(deltaTime, player, onFlagCollect);
-        policeManager.update(deltaTime, player, onCatchProtester, true, flagManager.isAllCollected());
+      camera.update();
+
+      // Render Canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Background color
+      const activeBg = (mapDrawer.theme && mapDrawer.theme.bgCanvas) || config.colors.bgColor || '#0b1120';
+      ctx.fillStyle = hud.viewMode === 'blueprint' ? '#091524' : activeBg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      camera.apply(ctx);
+
+      // 1. Draw Circular Road Network, Buildings, Central Jantar Mantar, & Victory Gandhi Cap
+      mapDrawer.draw(hud.viewMode, deltaTime, sunAngle, flagManager.isAllCollected());
+
+      // 2. Draw Flags
+      flagManager.draw(ctx, hud.viewMode);
+
+      // 3. Draw Police AI
+      policeManager.draw(ctx, hud.viewMode);
+
+      // 4. Draw Player
+      player.draw(ctx, hud.viewMode);
+
+      camera.restore(ctx);
+
+      // 5. Draw Radar Minimap (if help modal is open or active)
+      if (isGameStarted && helpMapModal && helpMapModal.classList.contains('active')) {
+        minimap.draw(camera, player, policeManager.officers, flagManager.flags);
       }
-      hud.update(deltaTime);
-    }
-
-    camera.update();
-
-    // Render Canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Background color
-    const activeBg = (mapDrawer.theme && mapDrawer.theme.bgCanvas) || config.colors.bgColor || '#e3dfd3';
-    ctx.fillStyle = hud.viewMode === 'blueprint' ? '#091524' : activeBg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    camera.apply(ctx);
-
-    // 1. Draw Circular Road Network, Buildings, Central Jantar Mantar, & Victory Gandhi Cap
-    mapDrawer.draw(hud.viewMode, deltaTime, sunAngle, flagManager.isAllCollected());
-
-    // 2. Draw Flags
-    flagManager.draw(ctx, hud.viewMode);
-
-    // 3. Draw Police AI
-    policeManager.draw(ctx, hud.viewMode);
-
-    // 4. Draw Player
-    player.draw(ctx, hud.viewMode);
-
-    camera.restore(ctx);
-
-    // 5. Draw Radar Minimap (only if game is active or minimap visible)
-    if (isGameStarted) {
-      minimap.draw(camera, player, policeManager.officers, flagManager.flags);
+    } catch (err) {
+      console.warn('Game frame render warning:', err);
     }
 
     requestAnimationFrame(render);

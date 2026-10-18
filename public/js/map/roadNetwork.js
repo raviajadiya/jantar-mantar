@@ -42,11 +42,14 @@ class RoadNetwork {
       rings.push(1400 + i * 320);
     }
     this.rings = rings;
+    const maxRingIdx = rings.length - 1;
 
-    const radials = [
-      -Math.PI / 2, -Math.PI / 4, 0, Math.PI / 4,
-      Math.PI / 2, (3 * Math.PI) / 4, Math.PI, -(3 * Math.PI) / 4
-    ];
+    // 16 Radials: 8 Main avenues (even index, from Ring 0 to outer) + 8 Intermediate avenues (odd index, from Ring 2 to outer)
+    const radials = [];
+    for (let i = 0; i < 16; i++) {
+      radials.push(-Math.PI / 2 + (i * Math.PI) / 8);
+    }
+    this.radials = radials;
     const numRadials = radials.length;
 
     // 1. Register Segments: Circular Ring Roads
@@ -54,17 +57,34 @@ class RoadNetwork {
       this.segments.push({ type: 'arc', cx, cy, radius: r, startAngle: 0, endAngle: Math.PI * 2, width: 90 });
     });
 
-    // 8 Radial Avenues from Ring 0 (240) to outermost Ring
-    radials.forEach(a => {
+    // 8 Main Radial Avenues from Ring 0 (240) to outermost Ring
+    for (let a = 0; a < numRadials; a += 2) {
+      const angle = radials[a];
       this.segments.push({
         type: 'line',
-        x1: cx + Math.cos(a) * rings[0],
-        y1: cy + Math.sin(a) * rings[0],
-        x2: cx + Math.cos(a) * (rings[rings.length - 1] + 30),
-        y2: cy + Math.sin(a) * (rings[rings.length - 1] + 30),
-        width: 90
+        x1: cx + Math.cos(angle) * rings[0],
+        y1: cy + Math.sin(angle) * rings[0],
+        x2: cx + Math.cos(angle) * (rings[maxRingIdx] + 30),
+        y2: cy + Math.sin(angle) * (rings[maxRingIdx] + 30),
+        width: 90,
+        isMain: true
       });
-    });
+    }
+
+    // 8 Intermediate Radial Avenues from Ring 2 (760) to outermost Ring
+    // Splits the wide outer blocks into balanced, beautiful city blocks
+    for (let a = 1; a < numRadials; a += 2) {
+      const angle = radials[a];
+      this.segments.push({
+        type: 'line',
+        x1: cx + Math.cos(angle) * rings[2],
+        y1: cy + Math.sin(angle) * rings[2],
+        x2: cx + Math.cos(angle) * (rings[maxRingIdx] + 30),
+        y2: cy + Math.sin(angle) * (rings[maxRingIdx] + 30),
+        width: 90,
+        isIntermediate: true
+      });
+    }
 
     // Central Sanctuary Circular Courtyard Plaza (Walkable area around the Gandhi Cap)
     this.segments.push({
@@ -76,26 +96,31 @@ class RoadNetwork {
     });
 
     // 8 Grand Radial Walkways connecting Ring 0 into the Central Sanctuary Plaza
-    radials.forEach(a => {
+    for (let a = 0; a < numRadials; a += 2) {
+      const angle = radials[a];
       this.segments.push({
         type: 'line',
         x1: cx,
         y1: cy,
-        x2: cx + Math.cos(a) * rings[0],
-        y2: cy + Math.sin(a) * rings[0],
-        width: 65
+        x2: cx + Math.cos(angle) * rings[0],
+        y2: cy + Math.sin(angle) * rings[0],
+        width: 65,
+        isWalkway: true
       });
-    });
+    }
 
     // 2. Exact Intersection Nodes Matrix: [ringIdx][radIdx]
     const matrix = [];
     for (let r = 0; r < rings.length; r++) {
       matrix[r] = [];
       for (let a = 0; a < numRadials; a++) {
+        // Intermediate radial avenues (odd 'a') only exist on rings >= 2
+        if (r < 2 && a % 2 !== 0) continue;
         const angle = radials[a];
         const node = this.createNode(cx + Math.cos(angle) * rings[r], cy + Math.sin(angle) * rings[r]);
         node.ringIndex = r;
         node.radialIndex = a;
+        node.isMainSpoke = (a % 2 === 0);
         node.isIntersection = true;
         matrix[r][a] = node;
       }
@@ -109,7 +134,7 @@ class RoadNetwork {
     this.centerNode = centerNode;
 
     // Connect Center Node to all 8 Ring 0 intersections via walkway nodes
-    for (let a = 0; a < numRadials; a++) {
+    for (let a = 0; a < numRadials; a += 2) {
       const ring0Node = matrix[0][a];
       const angle = radials[a];
 
@@ -126,13 +151,19 @@ class RoadNetwork {
       this.connect(walk2.id, ring0Node.id);
     }
 
-    // 3. Connect radially between rings (from Ring 0 outwards to outermost Ring)
+    // 3. Connect radially between rings
     for (let a = 0; a < numRadials; a++) {
-      for (let r = 0; r < rings.length - 1; r++) {
+      const startR = (a % 2 === 0) ? 0 : 2;
+      for (let r = startR; r < rings.length - 1; r++) {
         const n1 = matrix[r][a];
         const n2 = matrix[r + 1][a];
+        if (!n1 || !n2) continue;
         const mid1 = this.createNode(n1.x + (n2.x - n1.x) * 0.33, n1.y + (n2.y - n1.y) * 0.33);
         const mid2 = this.createNode(n1.x + (n2.x - n1.x) * 0.67, n1.y + (n2.y - n1.y) * 0.67);
+        mid1.ringIndex = r;
+        mid1.radialIndex = a;
+        mid2.ringIndex = r;
+        mid2.radialIndex = a;
         this.connect(n1.id, mid1.id);
         this.connect(mid1.id, mid2.id);
         this.connect(mid2.id, n2.id);
@@ -140,18 +171,18 @@ class RoadNetwork {
     }
 
     // 4. Connect circularly along each ring
-    const arcDivisions = [3, 4, 6, 8, 11];
-    for (let i = 5; i < rings.length; i++) {
-      arcDivisions.push(11 + (i - 4) * 2);
-    }
-
     for (let r = 0; r < rings.length; r++) {
       const radius = rings[r];
-      const div = arcDivisions[r] || 4;
-      for (let a = 0; a < numRadials; a++) {
-        const nextA = (a + 1) % numRadials;
+      // Rings 0 & 1 have 8 intersections (step = 2)
+      // Rings >= 2 have 16 intersections (step = 1)
+      const step = (r < 2) ? 2 : 1;
+      const div = (r < 2) ? 4 : 3;
+
+      for (let a = 0; a < numRadials; a += step) {
+        const nextA = (a + step) % numRadials;
         const startNode = matrix[r][a];
         const endNode = matrix[r][nextA];
+        if (!startNode || !endNode) continue;
 
         let startAngle = radials[a];
         let endAngle = radials[nextA];
@@ -180,7 +211,7 @@ class RoadNetwork {
   // Get the 8 main spoke intersection nodes on the outermost (last) ring
   getOuterRingSpokeNodes() {
     const maxRingIdx = (this.rings ? this.rings.length : 5) - 1;
-    return this.nodes.filter(n => n.ringIndex === maxRingIdx && n.isIntersection);
+    return this.nodes.filter(n => n.ringIndex === maxRingIdx && n.isIntersection && n.isMainSpoke);
   }
 
 

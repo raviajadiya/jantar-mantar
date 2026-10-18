@@ -16,7 +16,11 @@ class DilliMinimap {
   }
 
   setMapTheme(theme) {
-    this.theme = theme;
+    if (typeof theme === 'string' && window.MAP_THEMES) {
+      this.theme = window.MAP_THEMES[theme] || window.MAP_THEMES['jantar_dark'];
+    } else {
+      this.theme = theme;
+    }
   }
 
   setWorldSize(worldWidth, worldHeight) {
@@ -40,12 +44,13 @@ class DilliMinimap {
   }
 
   draw(camera, player, policeOfficers = [], flags = []) {
+    if (!this.canvas || !this.ctx) return;
     const ctx = this.ctx;
     const w = this.width;
     const h = this.height;
 
     // Background
-    ctx.fillStyle = this.theme ? this.theme.bgCanvas : '#f5efe3';
+    ctx.fillStyle = this.theme ? this.theme.bgCanvas : '#0b1120';
     ctx.fillRect(0, 0, w, h);
 
     const scaleX = w / this.worldWidth;
@@ -54,7 +59,7 @@ class DilliMinimap {
     const cy = this.config.circularLayout.center.y * scaleY;
 
     // 1. Draw All Road Network Segments of the Active Route Map
-    ctx.strokeStyle = this.theme ? (this.theme.curbColor || '#cbd5e1') : '#cbd5e1';
+    ctx.strokeStyle = this.theme ? (this.theme.curbColor || '#334155') : '#334155';
     ctx.lineWidth = 2.8;
 
     const segments = (this.roadNetwork && this.roadNetwork.segments) || [];

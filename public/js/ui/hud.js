@@ -21,6 +21,7 @@ class GameHUD {
     this.arrestModal = document.getElementById('arrest-modal');
     this.btnRestartVictory = document.getElementById('btn-restart-victory');
     this.btnRestartArrest = document.getElementById('btn-restart-arrest');
+    this.btnHomeArrest = document.getElementById('btn-home-arrest');
     this.btnContinueLevel = document.getElementById('btn-continue-level');
     this.levelBadgeEl = document.getElementById('hud-level-badge');
     this.victoryModalTitle = document.getElementById('victory-modal-title');
@@ -33,6 +34,8 @@ class GameHUD {
     this.viewMode = 'standard';
     this.isGameOver = false;
     this.onContinueLevel = null;
+    this.onRestartGame = null;
+    this.onGoHome = null;
 
     this.initControls();
   }
@@ -50,14 +53,44 @@ class GameHUD {
       });
     }
 
-    // Modal Play Again / Restart buttons
+    // Arrest Modal Buttons
+    if (this.btnRestartArrest) {
+      this.btnRestartArrest.addEventListener('click', () => {
+        this.isGameOver = false;
+        if (this.arrestModal) this.arrestModal.classList.remove('active');
+        if (this.onRestartGame) {
+          this.onRestartGame();
+        } else {
+          location.reload();
+        }
+      });
+    }
+
+    if (this.btnHomeArrest) {
+      this.btnHomeArrest.addEventListener('click', () => {
+        this.isGameOver = false;
+        if (this.arrestModal) this.arrestModal.classList.remove('active');
+        if (this.onGoHome) {
+          this.onGoHome();
+        } else {
+          location.reload();
+        }
+      });
+    }
+
+    // Victory Modal Go to Home Button
     if (this.btnRestartVictory) {
       this.btnRestartVictory.addEventListener('click', () => {
         if (window.CelebrationBlast) window.CelebrationBlast.stop();
-        location.reload();
+        this.isGameOver = false;
+        if (this.victoryModal) this.victoryModal.classList.remove('active');
+        if (this.onGoHome) {
+          this.onGoHome();
+        } else {
+          location.reload();
+        }
       });
     }
-    if (this.btnRestartArrest) this.btnRestartArrest.addEventListener('click', () => location.reload());
 
     // Continue to Next Level Button
     if (this.btnContinueLevel) {
@@ -144,30 +177,13 @@ class GameHUD {
     }
 
     if (this.victoryModal) {
-      const total = this.flagManager.getTotalCount();
-      const nextLevel = this.level + 1;
-      const isNextMapExpanded = (nextLevel % 5 === 0);
-
-      if (this.victoryModalTitle) this.victoryModalTitle.textContent = `LEVEL ${this.level} COMPLETED! 🏆`;
-      if (this.victoryModalSubtitle) this.victoryModalSubtitle.textContent = `All ${total} Flags Secured & Center Gandhi Cap Claimed! 🧢`;
-      if (this.victoryModalDesc) {
-        if (isNextMapExpanded) {
-          this.victoryModalDesc.innerHTML = `🌟 <strong>MILESTONE!</strong> Click Continue to enter <strong>Level ${nextLevel}</strong>: The <strong>MAP WILL EXPAND</strong> with an extra circular ring and more flags!`;
-        } else {
-          const nextExpand = 5 - (nextLevel % 5);
-          this.victoryModalDesc.innerHTML = `Outstanding navigation! Click Continue to advance to <strong>Level ${nextLevel}</strong> with <strong>more flags</strong>! (Map expands at Level ${nextLevel + nextExpand})`;
-        }
-      }
-      if (this.btnContinueLevel) {
-        if (isNextMapExpanded) {
-          this.btnContinueLevel.innerHTML = `▶ CONTINUE TO LEVEL ${nextLevel} (🌟 મોટો મેપ & વધુ ફ્લેગ્સ)`;
-        } else {
-          this.btnContinueLevel.innerHTML = `▶ CONTINUE TO LEVEL ${nextLevel} (🚩 વધુ ફ્લેગ્સ)`;
-        }
-      }
+      if (this.victoryModalTitle) this.victoryModalTitle.textContent = `LEVEL ${this.level} COMPLETED`;
+      if (this.victoryModalSubtitle) this.victoryModalSubtitle.textContent = '';
+      if (this.victoryModalDesc) this.victoryModalDesc.textContent = '';
+      if (this.btnContinueLevel) this.btnContinueLevel.textContent = '▶ CONTINUE NEXT';
       this.victoryModal.classList.add('active');
     }
-    this.logAction(`🎉 VICTORY! Grabbed Gandhi Cap at Center for Level ${this.level}!`);
+    this.logAction(`🎉 VICTORY! Level ${this.level} Completed!`);
   }
 
   triggerArrest(officer) {

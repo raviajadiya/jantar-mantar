@@ -1,0 +1,9 @@
+{
+  "appId": "com.jantarmantar.protestgame",
+  "appName": "Jantar Mantar 2.0",
+  "webDir": "public",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}

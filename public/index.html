@@ -9,18 +9,23 @@
   <meta name="theme-color" content="#0f172a">
   <title>Jantar Mantar 2.0 - Circular Road Stealth Protest Game</title>
   <meta name="description" content="Clean 2D view: Circular road maze with central Jantar Mantar, flag collections, and police stealth AI.">
-  <link rel="stylesheet" href="css/main.css?v=5.7">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/main.css?v=7.1">
 </head>
 <body>
   <div id="game-container">
     <!-- Main 2D Canvas Viewport -->
     <canvas id="map-canvas"></canvas>
 
-    <!-- 1. TOP-LEFT HELP & RADAR MAP BUTTON -->
+    <!-- 1. TOP-LEFT HELP & THEME TOGGLE BUTTONS -->
     <div class="hud-top-left-zone hud-element hud-hidden" id="hud-help-bar">
-      <button id="btn-help-toggle" class="hud-circle-btn" title="Help & Radar Map (નકશો અને મદદ)">
+      <button id="btn-help-toggle" class="hud-circle-btn" title="Help & Radar Map">
         <span class="btn-help-icon">❓</span>
         <span class="btn-help-text">HELP</span>
+      </button>
+      <button id="btn-theme-toggle" class="hud-circle-btn hud-theme-btn" title="Switch Theme (Dark / Light)">
+        <span class="btn-theme-icon" id="btn-theme-icon">🌙</span>
+        <span class="btn-theme-text" id="btn-theme-text">DARK</span>
       </button>
     </div>
 
@@ -47,7 +52,7 @@
 
     <!-- 3. TOP-RIGHT ZOOM BUTTON & DROPDOWN PANEL -->
     <div class="clean-zoom-widget hud-element hud-hidden" id="hud-zoom-bar">
-      <button id="btn-zoom-toggle" class="hud-circle-btn zoom-toggle-btn" title="Zoom Controls (ઝૂમ)">
+      <button id="btn-zoom-toggle" class="hud-circle-btn zoom-toggle-btn" title="Zoom Controls">
         <span class="btn-zoom-main-icon">🔍</span>
       </button>
       <div id="zoom-dropdown-menu" class="zoom-dropdown-panel hidden">
@@ -58,44 +63,14 @@
       </div>
     </div>
 
-    <!-- 4. ON-SCREEN MOBILE CONTROLS (Virtual Joystick & Sprint Button) -->
-    <div id="mobile-controls-container" class="hud-element hud-hidden">
-      <!-- Virtual Thumbstick Joystick (Bottom-Left) -->
-      <div id="mobile-joystick-zone">
-        <div id="joystick-base">
-          <div id="joystick-ring"></div>
-          <div id="joystick-knob">
-            <span class="knob-icon">🧭</span>
-          </div>
-        </div>
-        <div class="joystick-label">MOVE / સ્ટીયરીંગ</div>
-      </div>
-
-      <!-- Action Buttons (Bottom-Right) -->
-      <div id="mobile-action-buttons">
-        <button id="btn-mobile-sprint" class="mobile-action-btn" title="Hold or Tap to Sprint">
-          <span class="btn-sprint-glow"></span>
-          <span class="btn-sprint-icon">⚡</span>
-          <span class="btn-sprint-text">RUN</span>
-        </button>
-      </div>
-    </div>
 
 
 
     <!-- COMPACT GAME CARD UI MODAL -->
     <div id="start-modal" class="modal-backdrop active start-screen-backdrop">
       <div class="game-card-dialog">
-        <!-- Golden Game Card Corner Accents -->
-        <div class="card-corner tl"></div>
-        <div class="card-corner tr"></div>
-        <div class="card-corner bl"></div>
-        <div class="card-corner br"></div>
-
         <!-- 1. Police vs Protester Game Banner Header -->
         <div class="game-card-banner">
-          <div class="banner-badge-top">DELHI STEALTH CHASE // JANTAR MANTAR</div>
-          
           <div class="banner-versus-stage">
             <!-- Protester Side -->
             <div class="fighter-side protester">
@@ -118,72 +93,32 @@
                 <span class="police-siren">🚨</span>
                 <span class="fighter-icon">👮</span>
               </div>
-              <span class="fighter-title">DELHI POLICE</span>
+              <span class="fighter-title">POLICE</span>
             </div>
           </div>
 
           <h2 class="game-card-title">JANTAR MANTAR 2.0</h2>
-          <div class="game-card-subtitle">Infiltrate Concentric Rings • Collect 6 Flags • Evade Police</div>
         </div>
 
-        <!-- 2. Simple & Short Setup Controls -->
+        <!-- 2. Simple Controls Body -->
         <div class="game-card-body">
-          <!-- Player / Protester Name Input -->
-          <div class="game-input-group">
-            <label for="player-name-input" class="game-label">
-              <span>👤 PROTESTER NAME (તમારું નામ)</span>
-            </label>
-            <div class="input-with-button">
-              <input 
-                type="text" 
-                id="player-name-input" 
-                class="game-text-input" 
-                placeholder="Enter player name..." 
-                value="Aam Aadmi" 
-                maxlength="18"
-                autocomplete="off"
-              />
-              <button type="button" id="btn-random-name" class="game-dice-btn" title="Random Indian Hero Name">🎲</button>
-            </div>
+          <input type="hidden" id="player-name-input" value="Aam Aadmi" />
+
+          <!-- Theme Switcher Pills -->
+          <div class="theme-switch-container">
+            <button type="button" id="btn-theme-dark" class="theme-choice-btn active" title="Dark Mode (Midnight)">
+              <span>🌙 DARK</span>
+            </button>
+            <button type="button" id="btn-theme-light" class="theme-choice-btn" title="Light Mode (White Sandstone)">
+              <span>☀️ LIGHT</span>
+            </button>
           </div>
 
-          <!-- Country Flag Dropdown -->
-          <div class="game-input-group">
-            <label for="country-flag-select" class="game-label">
-              <span>🚩 COUNTRY FLAG (દેશનો ધ્વજ પસંદ કરો)</span>
-            </label>
-            <div class="select-flag-wrapper">
-              <select id="country-flag-select" class="game-select-input">
-                <option value="IND" selected>🇮🇳 India (Tricolor)</option>
-                <option value="USA">🇺🇸 USA (Stars & Stripes)</option>
-                <option value="GBR">🇬🇧 United Kingdom (Union Jack)</option>
-                <option value="CAN">🇨🇦 Canada (Maple Leaf)</option>
-                <option value="JPN">🇯🇵 Japan (Rising Sun)</option>
-                <option value="DEU">🇩🇪 Germany (Black-Red-Gold)</option>
-                <option value="FRA">🇫🇷 France (Tricolore)</option>
-                <option value="AUS">🇦🇺 Australia (Southern Cross)</option>
-                <option value="BRA">🇧🇷 Brazil (Verde e Amarelo)</option>
-                <option value="ZAF">🇿🇦 South Africa (Rainbow)</option>
-                <option value="ARE">🇦🇪 UAE</option>
-                <option value="ITA">🇮🇹 Italy (Tricolore)</option>
-                <option value="ESP">🇪🇸 Spain (Rojigualda)</option>
-                <option value="GLO">🏳️‍🌈 Freedom Flag (Peace)</option>
-              </select>
-              <!-- Live Mini Waving Flag Badge -->
-              <div class="selected-flag-preview-box" id="flag-preview-stripes" title="Selected Flag">
-                <div class="f-stripe" id="f-s1"></div>
-                <div class="f-stripe" id="f-s2"></div>
-                <div class="f-stripe" id="f-s3"></div>
-              </div>
-            </div>
-            <div class="card-hint-text">🚩 All 6 collectible flags on map will match this nation!</div>
-          </div>
-
-          <!-- 3. Start Game Button -->
+          <!-- Start Game Button -->
           <button id="btn-start-game" class="game-card-start-btn">
             <span class="btn-glow-ring"></span>
             <span class="btn-icon">▶</span>
-            <span class="btn-text">START GAME (રમત શરૂ કરો)</span>
+            <span class="btn-text">START GAME</span>
           </button>
           
           <div class="game-card-footer-hint">
@@ -198,37 +133,34 @@
       <!-- Fullscreen Celebratory Confetti & Paper Card Blast Canvas -->
       <canvas id="victory-confetti-canvas"></canvas>
 
-      <div class="landmark-card-modal victory-card-modal" style="border-color:#22c55e; text-align:center;">
-        <div class="victory-icon-blast">🧢🏆🎉</div>
-        <h2 class="modal-title" id="victory-modal-title" style="color:#22c55e;">LEVEL 1 COMPLETED!</h2>
-        <div id="victory-modal-subtitle" style="color:#facc15; font-size:1.1rem; margin-top:4px; font-weight:700;">
-          All Flags Secured & Center Gandhi Cap Claimed! 🧢
-        </div>
-        <div class="modal-body" style="margin-top:16px;">
-          <p id="victory-modal-desc">You grabbed the Victory Protest Cap at Jantar Mantar! Click <strong>Continue</strong> to expand the circular road map and collect more flags!</p>
-        </div>
-        <div class="modal-footer" style="justify-content:center; gap:12px; flex-wrap:wrap;">
-          <button id="btn-continue-level" class="btn-teleport btn-continue-level" style="background:linear-gradient(135deg, #f59e0b, #ea580c); font-size:1rem; padding:11px 24px; font-weight:800; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.45); cursor:pointer;">
-            ▶ CONTINUE TO NEXT LEVEL (મોટો મેપ & વધુ ફ્લેગ્સ)
+      <div class="landmark-card-modal victory-card-modal" style="border-color:#22c55e; text-align:center; max-width:400px; padding:32px 24px;">
+        <div class="victory-icon-blast" style="font-size:4.2rem; margin-bottom:12px;">🏆</div>
+        <h2 class="modal-title" id="victory-modal-title" style="color:#22c55e; font-size:1.6rem; font-weight:800; letter-spacing:0.5px; margin:0 0 20px 0;">LEVEL 1 COMPLETED</h2>
+
+        <div class="modal-footer" style="justify-content:center; gap:14px; flex-wrap:wrap; margin-top:8px;">
+          <button id="btn-continue-level" class="btn-teleport btn-continue-level" style="background:linear-gradient(135deg, #f59e0b, #ea580c); font-size:1.05rem; padding:12px 28px; font-weight:800; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.45); cursor:pointer; border-radius:8px;">
+            ▶ CONTINUE NEXT
           </button>
-          <button id="btn-restart-victory" class="btn-teleport" style="background:#334155; cursor:pointer;">🔄 Restart (Level 1)</button>
+          <button id="btn-restart-victory" class="btn-teleport" style="background:#334155; font-size:1.05rem; padding:12px 24px; font-weight:700; cursor:pointer; border-radius:8px;">
+            🏠 GO TO HOME
+          </button>
         </div>
       </div>
     </div>
 
     <!-- ARREST / DETAINED MODAL -->
     <div id="arrest-modal" class="modal-backdrop">
-      <div class="landmark-card-modal arrest-card-modal" style="border-color:#ef4444; text-align:center;">
-        <div class="arrest-police-icon">🚨👮🚔</div>
-        <h2 class="modal-title" style="color:#ef4444;">PROTESTER DETAINED!</h2>
-        <div style="color:#f87171; font-size:1.05rem; margin-top:4px; font-weight:700;">
-          Caught by <span id="arresting-officer-name">Delhi Police</span>!
-        </div>
-        <div class="modal-body" style="margin-top:16px;">
-          <p>You were intercepted on the circular road corridor. Sprint onto another radial road or turn corners behind buildings to break their line-of-sight!</p>
-        </div>
-        <div class="modal-footer" style="justify-content:center;">
-          <button id="btn-restart-arrest" class="btn-teleport" style="background:#dc2626;">🔄 Try Again</button>
+      <div class="landmark-card-modal arrest-card-modal" style="border-color:#ef4444; text-align:center; max-width:400px; padding:32px 24px;">
+        <div class="arrest-police-icon" style="font-size:3.8rem; margin-bottom:12px;">🚨👮🚔</div>
+        <h2 class="modal-title" style="color:#ef4444; font-size:1.6rem; font-weight:800; letter-spacing:0.5px; margin:0 0 16px 0;">PROTESTER DETAINED!</h2>
+
+        <div class="modal-footer" style="justify-content:center; gap:14px; flex-wrap:wrap; margin-top:8px;">
+          <button id="btn-restart-arrest" class="btn-teleport" style="background:linear-gradient(135deg, #ef4444, #b91c1c); font-size:1.05rem; padding:12px 28px; font-weight:800; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.45); cursor:pointer; border-radius:8px;">
+            🔄 RESTART GAME
+          </button>
+          <button id="btn-home-arrest" class="btn-teleport" style="background:#334155; font-size:1.05rem; padding:12px 24px; font-weight:700; cursor:pointer; border-radius:8px;">
+            🏠 GO TO HOME
+          </button>
         </div>
       </div>
     </div>
@@ -241,10 +173,10 @@
             <span class="help-header-icon">🗺️</span>
             <div>
               <h3 class="help-modal-heading">RADAR MAP & HELP</h3>
-              <div class="help-modal-sub">નકશો અને ગેમ માર્ગદર્શન</div>
+              <div class="help-modal-sub">Radar Map & Objectives</div>
             </div>
           </div>
-          <button id="btn-close-help" class="modal-close-btn" title="Close (બંધ કરો)">✕</button>
+          <button id="btn-close-help" class="modal-close-btn" title="Close">✕</button>
         </div>
 
         <div class="help-map-body">
@@ -265,15 +197,15 @@
             <div class="guide-rules-list">
               <div class="guide-rule-item">
                 <span class="rule-icon">1️⃣</span>
-                <span>બધા <strong>🚩 ફ્લેગ્સ</strong> ભેગા કરો અને પોલીસની નજરથી બચો.</span>
+                <span>Collect all <strong>🚩 Protest Flags</strong> while evading Delhi Police patrols.</span>
               </div>
               <div class="guide-rule-item">
                 <span class="rule-icon">2️⃣</span>
-                <span>બધા ફ્લેગ્સ આવ્યા પછી સેન્ટરમાં <strong>🧢 ગાંધી ટોપી</strong> લઈ લેવલ પાસ કરો!</span>
+                <span>After securing all flags, reach the center to claim the <strong>🧢 Gandhi Cap</strong> and complete the level!</span>
               </div>
               <div class="guide-rule-item">
                 <span class="rule-icon">3️⃣</span>
-                <span>દોડવા માટે <strong>⚡ RUN</strong> બટન દબાવો, અને સ્ટીયરીંગ માટે <strong>🧭 જોયસ્ટિક</strong> વાપરો.</span>
+                <span>Tap roads to navigate, drag off-road to pan the camera, and avoid police line-of-sight.</span>
               </div>
             </div>
           </div>
@@ -281,7 +213,7 @@
 
         <div class="modal-footer" style="justify-content:center; padding-top: 10px;">
           <button id="btn-resume-game" class="game-card-start-btn" style="padding: 10px 24px; font-size: 1rem; width: auto; margin: 0;">
-            ✓ GOT IT (ચાલુ રાખો)
+            ✓ GOT IT (RESUME GAME)
           </button>
         </div>
       </div>
@@ -289,18 +221,18 @@
   </div>
 
   <!-- Scripts in order of dependency (with cache-buster) -->
-  <script src="js/config.js?v=5.8"></script>
-  <script src="js/map/mapThemes.js?v=5.8"></script>
-  <script src="js/engine/camera.js?v=5.8"></script>
-  <script src="js/engine/input.js?v=5.8"></script>
-  <script src="js/map/roadNetwork.js?v=5.8"></script>
-  <script src="js/map/circularMapDraw.js?v=5.8"></script>
-  <script src="js/map/minimap.js?v=5.8"></script>
-  <script src="js/entities/flags.js?v=5.8"></script>
-  <script src="js/entities/player.js?v=5.8"></script>
-  <script src="js/entities/policeAI.js?v=5.8"></script>
-  <script src="js/ui/celebrationBlast.js?v=5.8"></script>
-  <script src="js/ui/hud.js?v=5.8"></script>
-  <script src="js/main.js?v=5.8"></script>
+  <script src="js/config.js?v=7.1"></script>
+  <script src="js/map/mapThemes.js?v=7.1"></script>
+  <script src="js/engine/camera.js?v=7.1"></script>
+  <script src="js/engine/input.js?v=7.1"></script>
+  <script src="js/map/roadNetwork.js?v=7.1"></script>
+  <script src="js/map/circularMapDraw.js?v=7.1"></script>
+  <script src="js/map/minimap.js?v=7.1"></script>
+  <script src="js/entities/flags.js?v=7.1"></script>
+  <script src="js/entities/player.js?v=7.1"></script>
+  <script src="js/entities/policeAI.js?v=7.1"></script>
+  <script src="js/ui/celebrationBlast.js?v=7.1"></script>
+  <script src="js/ui/hud.js?v=7.1"></script>
+  <script src="js/main.js?v=7.1"></script>
 </body>
 </html>

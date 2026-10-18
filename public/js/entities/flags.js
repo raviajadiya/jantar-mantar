@@ -51,10 +51,15 @@ class FlagManager {
     const newFlags = [];
     for (let i = 0; i < count; i++) {
       // Distribute from ring 1 up to outermost ring, spreading across radials
-      const ringIdx = 1 + (i % (numRings - 1));
+      let ringIdx = 1 + (i % (numRings - 1));
       const radIdx = (i * 3 + 1) % radials.length;
-      const ring = rings[ringIdx] || rings[rings.length - 1];
       const radial = radials[radIdx];
+
+      // If this radial only connects [2, 3, 4], ensure ringIdx is within its connected range
+      if (radial && radial.connects && !radial.connects.includes(ringIdx)) {
+        ringIdx = radial.connects[0];
+      }
+      const ring = rings[ringIdx] || rings[rings.length - 1];
 
       const x = center.x + Math.cos(radial.angle) * ring.radius;
       const y = center.y + Math.sin(radial.angle) * ring.radius;
@@ -113,7 +118,7 @@ class FlagManager {
       if (f.isCollected) return;
 
       const dist = Math.hypot(player.x - f.x, player.y - f.y);
-      if (dist < 65) {
+      if (dist < 75) {
         f.isCollected = true;
         this.spawnCollectParticles(f.x, f.y, f.stripeColors || [f.color]);
         if (onCollect) onCollect(f);
@@ -170,31 +175,58 @@ class FlagManager {
   }
 
   drawFlag(ctx, f) {
+    const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 768);
+    // Substantially enlarged flag scale so flags stand out clearly across the wide map
+    const flagScale = isMobile ? 2.3 : 1.7;
+
     ctx.save();
     ctx.translate(f.x, f.y);
 
-    // Glowing base aura with country color
+    // 1. Glowing base aura with country color
     const auraColor = (this.countryFlag && this.countryFlag.color) || '#f59e0b';
     const pulse = Math.sin(this.animTime * 4 + f.pulseOffset) * 0.3 + 0.7;
     ctx.fillStyle = `rgba(${this.hexToRgb(auraColor)}, ${pulse * 0.38})`;
     ctx.beginPath();
-    ctx.arc(0, 0, 26 * pulse, 0, Math.PI * 2);
+    ctx.arc(0, 0, 36 * pulse * (isMobile ? 1.3 : 1.1), 0, Math.PI * 2);
     ctx.fill();
 
-    // Flagpole base stone
-    ctx.fillStyle = '#64748b';
+    // Pulsing outer beacon ring
+    ctx.strokeStyle = `rgba(${this.hexToRgb(auraColor)}, ${pulse * 0.75})`;
+    ctx.lineWidth = isMobile ? 3 : 2;
     ctx.beginPath();
-    ctx.arc(0, 0, 6, 0, Math.PI * 2);
+    ctx.arc(0, 0, 28 * pulse * (isMobile ? 1.3 : 1.1), 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.scale(flagScale, flagScale);
+
+    // 2. Flagpole base stone mount
+    ctx.fillStyle = '#475569';
+    ctx.beginPath();
+    ctx.arc(0, 0, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#94a3b8';
+    ctx.beginPath();
+    ctx.arc(0, 0, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Golden Flagpole
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(-2, -38, 4, 40);
+    // 3. Golden Flagpole
+    const poleH = 44;
+    ctx.fillStyle = '#d97706';
+    ctx.fillRect(-2, -poleH, 4, poleH + 2);
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(-1, -poleH, 2, poleH + 2);
 
-    // Waving Banner Cloth with Dynamic Country Stripes
-    const wave = Math.sin(this.animTime * 6 + f.pulseOffset) * 4;
-    const flagW = 32;
-    const flagH = 20;
+    // Golden Orb on top of flagpole
+    ctx.fillStyle = '#fef08a';
+    ctx.beginPath();
+    ctx.arc(0, -poleH, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. Waving Banner Cloth with Dynamic Country Stripes
+    const wave = Math.sin(this.animTime * 6 + f.pulseOffset) * 4.5;
+    const flagW = 38;
+    const flagH = 24;
 
     const stripes = (f.stripeColors && f.stripeColors.length > 0)
       ? f.stripeColors
@@ -204,11 +236,11 @@ class FlagManager {
     for (let s = 0; s < stripes.length; s++) {
       ctx.fillStyle = stripes[s];
       ctx.beginPath();
-      const topY = -38 + s * stripeH;
+      const topY = -poleH + s * stripeH;
       const botY = topY + stripeH;
       ctx.moveTo(2, topY);
-      ctx.lineTo(2 + flagW + wave, topY + wave * 0.5);
-      ctx.lineTo(2 + flagW + wave, botY + wave * 0.5);
+      ctx.lineTo(2 + flagW + wave, topY + wave * 0.45);
+      ctx.lineTo(2 + flagW + wave, botY + wave * 0.45);
       ctx.lineTo(2, botY);
       ctx.closePath();
       ctx.fill();
@@ -216,32 +248,18 @@ class FlagManager {
 
     // Flag crisp outline
     ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-    ctx.lineWidth = 0.9;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(2, -38);
-    ctx.lineTo(2 + flagW + wave, -38 + wave * 0.5);
-    ctx.lineTo(2 + flagW + wave, -38 + flagH + wave * 0.5);
-    ctx.lineTo(2, -38 + flagH);
+    ctx.moveTo(2, -poleH);
+    ctx.lineTo(2 + flagW + wave, -poleH + wave * 0.45);
+    ctx.lineTo(2 + flagW + wave, -poleH + flagH + wave * 0.45);
+    ctx.lineTo(2, -poleH + flagH);
     ctx.closePath();
     ctx.stroke();
 
-    // Flag Label Tag with Country Emoji
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
-    ctx.strokeStyle = auraColor;
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.roundRect(-46, -60, 92, 18, 5);
-    ctx.fill();
-    ctx.stroke();
+    ctx.restore(); // restore flagScale
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 9.5px "Outfit", "Segoe UI", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const tagEmoji = f.countryEmoji || (this.countryFlag ? this.countryFlag.emoji : '🚩');
-    ctx.fillText(`${tagEmoji} ${f.label || f.name}`, 0, -50);
-
-    ctx.restore();
+    ctx.restore(); // restore translate
   }
 
   getCollectedCount() {

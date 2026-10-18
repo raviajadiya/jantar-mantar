@@ -72,7 +72,7 @@ class ProtesterPlayer {
     const stepY = (dy / len) * step;
 
     // 1. Try full diagonal step strictly on road
-    if (this.roadNetwork.isPointOnRoad(this.x + stepX, this.y + stepY, 2)) {
+    if (this.roadNetwork.isPointOnRoad(this.x + stepX, this.y + stepY, 15)) {
       this.x += stepX;
       this.y += stepY;
       this.angle = Math.atan2(dy, dx);
@@ -82,7 +82,7 @@ class ProtesterPlayer {
     }
 
     // 2. Try sliding along X only
-    if (this.roadNetwork.isPointOnRoad(this.x + stepX, this.y, 2)) {
+    if (this.roadNetwork.isPointOnRoad(this.x + stepX, this.y, 15)) {
       this.x += stepX;
       this.angle = Math.atan2(0, dx);
       this.isMoving = true;
@@ -91,7 +91,7 @@ class ProtesterPlayer {
     }
 
     // 3. Try sliding along Y only
-    if (this.roadNetwork.isPointOnRoad(this.x, this.y + stepY, 2)) {
+    if (this.roadNetwork.isPointOnRoad(this.x, this.y + stepY, 15)) {
       this.y += stepY;
       this.angle = Math.atan2(dy, 0);
       this.isMoving = true;
@@ -146,15 +146,16 @@ class ProtesterPlayer {
 
   draw(ctx, mapMode = 'standard') {
     const isMobile = (typeof window !== 'undefined' && window.innerWidth <= 768);
-    const charScale = isMobile ? 2.1 : 1.0;
+    // Substantially enlarged character figurine (putlu) so it's prominent and crystal clear
+    const charScale = isMobile ? 4.5 : 3.0;
 
     ctx.save();
 
     // 1. Draw Active Waypoint Path Line
     if (this.path && this.path.length > 0 && this.currentWaypointIndex < this.path.length) {
-      ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
-      ctx.lineWidth = isMobile ? 5 : 3.5;
-      ctx.setLineDash([8, 6]);
+      ctx.strokeStyle = 'rgba(249, 115, 22, 0.7)';
+      ctx.lineWidth = isMobile ? 6 : 4;
+      ctx.setLineDash([10, 7]);
       ctx.beginPath();
       ctx.moveTo(this.x, this.y);
       for (let i = this.currentWaypointIndex; i < this.path.length; i++) {
@@ -167,28 +168,27 @@ class ProtesterPlayer {
       const finalTarget = this.path[this.path.length - 1];
       ctx.fillStyle = '#f97316';
       ctx.beginPath();
-      ctx.arc(finalTarget.x, finalTarget.y, isMobile ? 10 : 7, 0, Math.PI * 2);
+      ctx.arc(finalTarget.x, finalTarget.y, isMobile ? 12 : 8, 0, Math.PI * 2);
       ctx.fill();
-      if (isMobile) {
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-      }
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = isMobile ? 3 : 2;
+      ctx.stroke();
     }
 
     // 2. Orange Walking Ring Indicator
     ctx.strokeStyle = '#f97316';
-    ctx.lineWidth = isMobile ? 3.5 : 2.5;
+    ctx.lineWidth = isMobile ? 4 : 3;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, 20 * charScale, 0, Math.PI * 2);
+    ctx.arc(this.x, this.y, 12 * charScale, 0, Math.PI * 2);
     ctx.stroke();
 
     if (isMobile) {
       // Subtle pulse aura around protester on mobile for instant visibility from far away
-      ctx.strokeStyle = 'rgba(249, 115, 22, 0.28)';
-      ctx.lineWidth = 5;
+      const auraPulse = Math.sin(this.animTime * 4) * 0.12 + 0.88;
+      ctx.strokeStyle = 'rgba(249, 115, 22, 0.35)';
+      ctx.lineWidth = 7;
       ctx.beginPath();
-      ctx.arc(this.x, this.y, 20 * charScale + 3, 0, Math.PI * 2);
+      ctx.arc(this.x, this.y, 12 * charScale + 5 * auraPulse, 0, Math.PI * 2);
       ctx.stroke();
     }
 
@@ -286,28 +286,24 @@ class ProtesterPlayer {
     ctx.stroke();
 
     ctx.restore();
-
-    // Role / Player Identity Bubble
-    const labelY = this.y - (34 * charScale + (isMobile ? 12 : 2));
-    this.drawLabel(ctx, this.x, labelY, this.speechText, isMobile);
   }
 
   drawLabel(ctx, x, y, text, isMobile = false) {
     ctx.save();
-    const fontSize = isMobile ? 12 : 10;
+    const fontSize = isMobile ? 13 : 11;
     ctx.font = `bold ${fontSize}px "Outfit", "Segoe UI", sans-serif`;
     const tw = ctx.measureText(text).width;
-    const bw = tw + (isMobile ? 22 : 20);
-    const bh = isMobile ? 24 : 22;
+    const bw = tw + (isMobile ? 24 : 20);
+    const bh = isMobile ? 26 : 22;
 
     const badgeBorder = (this.countryFlag && this.countryFlag.color) || '#f59e0b';
 
     // Dark glassmorphic capsule
     ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
     ctx.strokeStyle = badgeBorder;
-    ctx.lineWidth = isMobile ? 2.2 : 1.6;
+    ctx.lineWidth = isMobile ? 2.4 : 1.8;
     ctx.beginPath();
-    ctx.roundRect(x - bw / 2, y - bh / 2, bw, bh, isMobile ? 7 : 6);
+    ctx.roundRect(x - bw / 2, y - bh / 2, bw, bh, isMobile ? 8 : 6);
     ctx.fill();
     ctx.stroke();
 
@@ -320,7 +316,7 @@ class ProtesterPlayer {
     // Pointer notch
     ctx.fillStyle = badgeBorder;
     ctx.beginPath();
-    ctx.moveTo(x, y + bh / 2 + (isMobile ? 5 : 5));
+    ctx.moveTo(x, y + bh / 2 + (isMobile ? 6 : 5));
     ctx.lineTo(x - (isMobile ? 5 : 4), y + bh / 2);
     ctx.lineTo(x + (isMobile ? 5 : 4), y + bh / 2);
     ctx.closePath();

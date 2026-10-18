@@ -5,6 +5,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "sync:android": "cap sync android",
+    "open:android": "cap open android",
+    "build:netlify": "powershell -Command \"Remove-Item -Recurse -Force -ErrorAction SilentlyContinue 'netlify-deploy'; Copy-Item -Path 'public' -Destination 'netlify-deploy' -Recurse; Set-Content -Path 'netlify-deploy/_redirects' -Value '/*    /index.html   200'\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -13,5 +16,10 @@
   "description": "",
   "dependencies": {
     "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^7.6.9",
+    "@capacitor/core": "^8.5.3"
   }
 }

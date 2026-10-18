@@ -6,6 +6,7 @@ node_modules/
 # Production / Builds
 dist/
 build/
+netlify-deploy/
 
 # Logs
 logs
@@ -37,3 +38,4 @@ Thumbs.db
 # Temporary folders
 tmp/
 temp/
+scratch/
